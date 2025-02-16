@@ -1,27 +1,31 @@
+// components/ExpenseForm.tsx
 'use client'
 
-import React, { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { LogOut } from 'lucide-react';
+import React, { useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { LogOut } from 'lucide-react'
 
 export default function ExpenseForm() {
   const [formData, setFormData] = useState({
     amount: '',
     category: '',
     observation: ''
-  });
-  const [message, setMessage] = useState('');
-  const supabase = createClientComponentClient();
+  })
+  const [message, setMessage] = useState('')
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser()
       
       if (!user?.email) {
-        setMessage('Por favor inicia sesión para registrar gastos');
-        return;
+        setMessage('Por favor inicia sesión para registrar gastos')
+        return
       }
 
       const { error } = await supabase
@@ -33,27 +37,26 @@ export default function ExpenseForm() {
             observation: formData.observation,
             user_email: user.email
           }
-        ]);
+        ])
 
-      if (error) throw error;
+      if (error) throw error
 
-      setMessage('Gasto registrado exitosamente');
-      setFormData({ amount: '', category: '', observation: '' });
+      setMessage('Gasto registrado exitosamente')
+      setFormData({ amount: '', category: '', observation: '' })
     } catch (error) {
-      setMessage('Error al registrar el gasto');
-      console.error(error);
+      setMessage('Error al registrar el gasto')
+      console.error(error)
     }
-  };
+  }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+    await supabase.auth.signOut()
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 py-6 flex flex-col justify-center">
       <div className="relative sm:max-w-xl sm:mx-auto w-full px-4">
         <div className="relative bg-white shadow-lg rounded-2xl">
-          {/* Header con botón de logout */}
           <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">Registro de Gastos</h2>
             <button
@@ -141,5 +144,5 @@ export default function ExpenseForm() {
         </div>
       </div>
     </div>
-  );
+  )
 }

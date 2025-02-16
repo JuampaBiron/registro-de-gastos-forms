@@ -1,14 +1,17 @@
-// component/AuthWrapper.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
+import { User } from '@supabase/supabase-js'
 import Auth from './Auth'
 import ExpenseForm from './ExpenseForm'
 
 export default function AuthWrapper() {
   const [user, setUser] = useState<User | null>(null)
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
     const getUser = async () => {
@@ -22,7 +25,7 @@ export default function AuthWrapper() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, []) // Removido supabase.auth de las dependencias
 
   return user ? <ExpenseForm /> : <Auth />
 }
