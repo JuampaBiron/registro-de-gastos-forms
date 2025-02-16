@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { AuthError } from '@supabase/supabase-js'
 
 export default function Auth() {
   const [email, setEmail] = useState('')
@@ -21,8 +22,12 @@ export default function Auth() {
       })
       if (error) throw error
       setMessage('¡Inicio de sesión exitoso!')
-    } catch (error: any) {
-      setMessage(error.message)
+    } catch (error: unknown) {
+      if (error instanceof AuthError) {
+        setMessage(error.message)
+      } else {
+        setMessage('Ha ocurrido un error')
+      }
     } finally {
       setLoading(false)
     }
@@ -38,8 +43,12 @@ export default function Auth() {
       })
       if (error) throw error
       setMessage('¡Revisa tu correo electrónico para confirmar tu cuenta!')
-    } catch (error: any) {
-      setMessage(error.message)
+    } catch (error: unknown) {
+      if (error instanceof AuthError) {
+        setMessage(error.message)
+      } else {
+        setMessage('Ha ocurrido un error')
+      }
     } finally {
       setLoading(false)
     }

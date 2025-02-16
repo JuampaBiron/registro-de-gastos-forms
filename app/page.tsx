@@ -2,12 +2,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'
 import Auth from '@/components/Auth'
 import ExpenseForm from '@/components/ExpenseForm'
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
