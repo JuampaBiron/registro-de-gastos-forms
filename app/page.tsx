@@ -1,3 +1,4 @@
+// app/page.tsx
 import AuthWrapper from '@/components/AuthWrapper'
 
 export const metadata = {
