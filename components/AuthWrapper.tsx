@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js'
 import Auth from './Auth'
 import ExpenseForm from './ExpenseForm'
 
-// Logs temporales para depuración
+// Logs temporales para depuraciónwd
 console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('SUPABASE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 5) + '...') // Solo mostramos los primeros 5 caracteres por seguridad
 
