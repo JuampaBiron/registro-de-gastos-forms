@@ -1,31 +1,30 @@
-// components/ExpenseForm.tsx
 'use client'
 
-import React, { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
-import { LogOut } from 'lucide-react'
+import React, { useState } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
+import { LogOut } from 'lucide-react';
 
 export default function ExpenseForm() {
   const [formData, setFormData] = useState({
     amount: '',
     category: '',
     observation: ''
-  })
-  const [message, setMessage] = useState('')
+  });
+  const [message, setMessage] = useState('');
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user?.email) {
-        setMessage('Por favor inicia sesión para registrar gastos')
-        return
+        setMessage('Por favor inicia sesión para registrar gastos');
+        return;
       }
 
       const { error } = await supabase
@@ -37,26 +36,27 @@ export default function ExpenseForm() {
             observation: formData.observation,
             user_email: user.email
           }
-        ])
+        ]);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setMessage('Gasto registrado exitosamente')
-      setFormData({ amount: '', category: '', observation: '' })
+      setMessage('Gasto registrado exitosamente');
+      setFormData({ amount: '', category: '', observation: '' });
     } catch (error) {
-      setMessage('Error al registrar el gasto')
-      console.error(error)
+      setMessage('Error al registrar el gasto');
+      console.error(error);
     }
-  }
+  };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-  }
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 py-6 flex flex-col justify-center">
       <div className="relative sm:max-w-xl sm:mx-auto w-full px-4">
         <div className="relative bg-white shadow-lg rounded-2xl">
+          {/* Header con botón de logout */}
           <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">Registro de Gastos</h2>
             <button
@@ -83,7 +83,7 @@ export default function ExpenseForm() {
                     value={formData.amount}
                     onChange={(e) => setFormData({...formData, amount: e.target.value})}
                     className="block w-full pl-8 pr-4 py-3 rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900"
-                    placeholder="0.00"
+                    placeholder="0"
                     required
                   />
                 </div>
@@ -100,10 +100,18 @@ export default function ExpenseForm() {
                   required
                 >
                   <option value="">Selecciona una categoría</option>
-                  <option value="alimentacion">🍽️ Alimentación</option>
-                  <option value="transporte">🚗 Transporte</option>
-                  <option value="servicios">🏠 Servicios</option>
-                  <option value="entretenimiento">🎮 Entretenimiento</option>
+                  <option value="supermercado">🛒 Supermercado</option>
+                  <option value="restaurant">🍽️ Restaurant</option>
+                  <option value="hobby">🎨 Hobby</option>
+                  <option value="cuidado_personal">💅 Cuidado personal</option>
+                  <option value="suscripciones">📱 Suscripciones</option>
+                  <option value="carrete">🎉 Carrete</option>
+                  <option value="arriendo">🏠 Arriendo</option>
+                  <option value="cuentas">📋 Cuentas</option>
+                  <option value="viajes">✈️ Viajes</option>
+                  <option value="traslados">🚗 Traslados</option>
+                  <option value="mascotas">🐾 Mascotas</option>
+                  <option value="regalos">🎁 Regalos</option>
                   <option value="otros">📦 Otros</option>
                 </select>
               </div>
@@ -144,5 +152,5 @@ export default function ExpenseForm() {
         </div>
       </div>
     </div>
-  )
+  );
 }
