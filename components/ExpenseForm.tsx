@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { LogOut } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ExpenseForm() {
   const [formData, setFormData] = useState({
@@ -148,6 +149,14 @@ export default function ExpenseForm() {
                 {message}
               </div>
             )}
+
+            <div className="mt-8">
+              <Link href="/expenses">
+                <button className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                  Ver mis gastos
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
