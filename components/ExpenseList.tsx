@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { Trash2 } from 'lucide-react'
+import Link from 'next/link'
 
 interface Expense {
   id: number
@@ -34,10 +35,6 @@ export default function ExpenseList() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-
-  useEffect(() => {
-    fetchExpenses()
-  }, [supabase])
 
   const fetchExpenses = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -87,6 +84,10 @@ export default function ExpenseList() {
     }
   }
 
+  useEffect(() => {
+    fetchExpenses()
+  }, [])
+
   const handleYearMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedYearMonth(e.target.value)
   }
@@ -99,8 +100,7 @@ export default function ExpenseList() {
   const handleConfirmDelete = async () => {
     if (expenseToDelete) {
       try {
-        console.log('Intentando eliminar gasto:', expenseToDelete.id)
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('expenses')
           .delete()
           .eq('id', expenseToDelete.id)
@@ -110,8 +110,7 @@ export default function ExpenseList() {
           console.error('Error al eliminar el gasto:', error)
           alert('Error al eliminar el gasto: ' + error.message)
         } else {
-          console.log('Gasto eliminado correctamente:', data)
-          await fetchExpenses() // Recargar la lista
+          await fetchExpenses()
         }
       } catch (error) {
         console.error('Error en la operación de eliminación:', error)
@@ -136,20 +135,20 @@ export default function ExpenseList() {
     <div className="container mx-auto px-4 mt-8 min-h-screen bg-gray-100">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <a 
+          <Link 
             href="/" 
             className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
           >
             Volver al Inicio
-          </a>
+          </Link>
           <h1 className="text-2xl font-bold text-gray-800">Mis Gastos</h1>
         </div>
-        <a 
+        <Link 
           href="/expenses/stats" 
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
         >
           Ver Estadísticas
-        </a>
+        </Link>
       </div>
 
       <div className="mb-4">

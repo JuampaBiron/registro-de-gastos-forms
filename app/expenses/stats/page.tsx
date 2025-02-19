@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import Link from 'next/link'
 import { 
   BarChart, 
   Bar, 
@@ -9,10 +10,9 @@ import {
   CartesianGrid, 
   Tooltip, 
   Legend,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer
+  ResponsiveContainer,
+  LineChart,
+  Line
 } from 'recharts'
 
 interface Expense {
@@ -24,69 +24,105 @@ interface Expense {
   user_email: string
 }
 
-interface CategoryTotal {
-  category: string
+interface DailyExpense {
+  day: number
   total: number
-  percentage: number
-}
-
-interface MonthlyTotal {
-  month: string
-  total: number
+  segment: string
 }
 
 export default function ExpenseStats() {
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
-  const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([])
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([])
+  const [selectedMonth, setSelectedMonth] = useState('')
+  const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
+  const [monthlyTotals, setMonthlyTotals] = useState<any[]>([])
+  const [categoryTotals, setCategoryTotals] = useState<any[]>([])
+  
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const COLORS = [
-    '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
-    '#82CA9D', '#FF6B6B', '#67B7DC', '#6B8E23', '#B87333'
-  ]
+  const fetchExpenses = async () => {
+    setIsLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_email', user.email)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching expenses:', error)
+      } else {
+        const months = getAvailableMonths(data)
+        setAvailableMonths(months)
+        setSelectedMonth(months[0])
+        calculateStats(data)
+        calculateDailyExpenses(data, months[0])
+      }
+    }
+    setIsLoading(false)
+  }
 
   useEffect(() => {
-    const fetchExpenses = async () => {
-      setIsLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data, error } = await supabase
-          .from('expenses')
-          .select('*')
-          .eq('user_email', user.email)
-          .order('created_at', { ascending: false })
-
-        if (error) {
-          console.error('Error fetching expenses:', error)
-        } else {
-          setExpenses(data)
-          calculateStats(data)
-        }
-      }
-      setIsLoading(false)
-    }
-
     fetchExpenses()
-  }, [supabase])
+  }, [])
+
+  const getAvailableMonths = (expenseData: Expense[]) => {
+    const months = new Set<string>()
+    expenseData.forEach(expense => {
+      const date = new Date(expense.created_at)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      months.add(monthKey)
+    })
+    return Array.from(months).sort((a, b) => b.localeCompare(a))
+  }
 
   const calculateStats = (expenseData: Expense[]) => {
-    // Calcular totales por categoría
+    // Calcular totales por categoría y mes
+    const monthData = new Map<string, Map<string, number>>()
     const categoryMap = new Map<string, number>()
     let totalAmount = 0
-
+    
     expenseData.forEach(expense => {
-      const current = categoryMap.get(expense.category) || 0
-      categoryMap.set(expense.category, current + expense.amount)
+      // Procesar datos mensuales
+      const date = new Date(expense.created_at)
+      const monthKey = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`
+      
+      if (!monthData.has(monthKey)) {
+        monthData.set(monthKey, new Map<string, number>())
+      }
+      
+      const categoryMapForMonth = monthData.get(monthKey)!
+      const currentAmount = categoryMapForMonth.get(expense.category) || 0
+      categoryMapForMonth.set(expense.category, currentAmount + expense.amount)
+      
+      // Procesar totales por categoría
+      const currentCategoryTotal = categoryMap.get(expense.category) || 0
+      categoryMap.set(expense.category, currentCategoryTotal + expense.amount)
       totalAmount += expense.amount
     })
 
+    // Convertir datos mensuales a formato para el gráfico
+    const monthlyStats = Array.from(monthData.entries()).map(([month, categories]) => {
+      const monthStats: any = { month }
+      let total = 0
+      
+      categories.forEach((amount, category) => {
+        monthStats[category] = amount
+        total += amount
+      })
+      
+      monthStats.total = total
+      return monthStats
+    }).sort((a, b) => a.month.localeCompare(b.month))
+
+    setMonthlyTotals(monthlyStats)
+
+    // Convertir totales por categoría a formato para el gráfico
     const categoryStats = Array.from(categoryMap.entries()).map(([category, total]) => ({
       category,
       total,
@@ -94,25 +130,48 @@ export default function ExpenseStats() {
     })).sort((a, b) => b.total - a.total)
 
     setCategoryTotals(categoryStats)
+  }
 
-    // Calcular totales por mes
-    const monthMap = new Map<string, number>()
+  const calculateDailyExpenses = (expenseData: Expense[], monthKey: string) => {
+    const dailyMap = new Map<number, number>()
     
-    expenseData.forEach(expense => {
+    const [year, month] = monthKey.split('-').map(Number)
+    const monthExpenses = expenseData.filter(expense => {
       const date = new Date(expense.created_at)
-      const monthKey = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`
-      const current = monthMap.get(monthKey) || 0
-      monthMap.set(monthKey, current + expense.amount)
+      return date.getFullYear() === year && date.getMonth() + 1 === month
     })
 
-    const monthlyStats = Array.from(monthMap.entries())
-      .map(([month, total]) => ({
-        month,
-        total
-      }))
-      .sort((a, b) => a.month.localeCompare(b.month))
+    monthExpenses.forEach(expense => {
+      const date = new Date(expense.created_at)
+      const day = date.getDate()
+      const current = dailyMap.get(day) || 0
+      dailyMap.set(day, current + expense.amount)
+    })
 
-    setMonthlyTotals(monthlyStats)
+    const dailyStats = Array.from(dailyMap.entries())
+      .map(([day, total]) => ({
+        day,
+        total,
+        segment: day <= 10 ? 'Inicio de mes' : day <= 20 ? 'Mitad de mes' : 'Fin de mes'
+      }))
+      .sort((a, b) => a.day - b.day)
+
+    setDailyExpenses(dailyStats)
+  }
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMonth = e.target.value
+    setSelectedMonth(newMonth)
+    calculateDailyExpenses(monthlyTotals, newMonth)
+  }
+
+  const formatMonth = (monthKey: string) => {
+    const [year, month] = monthKey.split('-')
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ]
+    return `${monthNames[parseInt(month) - 1]} ${year}`
   }
 
   if (isLoading) {
@@ -127,96 +186,117 @@ export default function ExpenseStats() {
     <div className="container mx-auto px-4 py-8 min-h-screen bg-gray-100">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Estadísticas de Gastos</h1>
-        <a 
-          href="/expenses" 
+        <Link 
+          href="/expenses"
           className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
         >
           Volver a Gastos
-        </a>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Gráfico de Distribución por Categorías */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-4">Distribución por Categorías</h2>
+        {/* Gráfico de Gastos Diarios */}
+        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Gastos Diarios del Mes</h2>
+            <select
+              value={selectedMonth}
+              onChange={handleMonthChange}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {availableMonths.map(month => (
+                <option key={month} value={month}>
+                  {formatMonth(month)}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryTotals}
-                  dataKey="total"
-                  nameKey="category"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {categoryTotals.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
+              <LineChart data={dailyExpenses}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="day"
+                  label={{ value: 'Día del mes', position: 'insideBottom', offset: -10 }}
+                />
+                <YAxis
+                  label={{ 
+                    value: 'Monto ($)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    offset: -5
+                  }}
+                />
                 <Tooltip 
                   formatter={(value: number) => `$${value.toLocaleString('es-CL')}`}
+                  labelFormatter={(day) => `Día ${day}`}
                 />
                 <Legend />
-              </PieChart>
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  name="Gasto diario"
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
             </ResponsiveContainer>
+          </div>
+          
+          {/* Resumen por segmentos del mes */}
+          <div className="mt-6 grid grid-cols-3 gap-4">
+            {['Inicio de mes', 'Mitad de mes', 'Fin de mes'].map(segment => {
+              const segmentTotal = dailyExpenses
+                .filter(exp => exp.segment === segment)
+                .reduce((sum, exp) => sum + exp.total, 0)
+              return (
+                <div key={segment} className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">{segment}</h3>
+                  <p className="text-lg font-semibold text-gray-900">
+                    ${segmentTotal.toLocaleString('es-CL')}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* Gráfico de Gastos Mensuales */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
           <h2 className="text-lg font-semibold mb-4">Gastos Mensuales</h2>
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyTotals}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis 
+                  dataKey="month"
+                  label={{ value: 'Mes', position: 'insideBottom', offset: -10 }}
+                />
+                <YAxis 
+                  label={{ 
+                    value: 'Monto ($)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    offset: -5
+                  }}
+                />
                 <Tooltip 
                   formatter={(value: number) => `$${value.toLocaleString('es-CL')}`}
+                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
                 />
                 <Legend />
-                <Bar dataKey="total" name="Total" fill="#8884d8" />
+                {categoryTotals.map((category, index) => (
+                  <Bar 
+                    key={category.category}
+                    dataKey={category.category}
+                    name={category.category}
+                    stackId="a"
+                    fill={`hsl(${index * (360 / categoryTotals.length)}, 70%, 50%)`}
+                  />
+                ))}
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Tabla de Resumen por Categorías */}
-        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
-          <h2 className="text-lg font-semibold mb-4">Resumen por Categorías</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Categoría
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Porcentaje
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {categoryTotals.map((category, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {category.category}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${category.total.toLocaleString('es-CL')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.percentage.toFixed(1)}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
