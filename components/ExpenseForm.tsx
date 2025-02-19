@@ -101,19 +101,19 @@ export default function ExpenseForm() {
                   required
                 >
                   <option value="">Selecciona una categoría</option>
-                  <option value="supermercado">🛒 Supermercado</option>
-                  <option value="restaurant">🍽️ Restaurant</option>
-                  <option value="hobby">🎨 Hobby</option>
-                  <option value="cuidado_personal">💅 Cuidado personal</option>
-                  <option value="suscripciones">📱 Suscripciones</option>
-                  <option value="carrete">🎉 Carrete</option>
-                  <option value="arriendo">🏠 Arriendo</option>
-                  <option value="cuentas">📋 Cuentas</option>
-                  <option value="viajes">✈️ Viajes</option>
-                  <option value="traslados">🚗 Traslados</option>
-                  <option value="mascotas">🐾 Mascotas</option>
-                  <option value="regalos">🎁 Regalos</option>
-                  <option value="otros">📦 Otros</option>
+                  <option value="Supermercado">🛒 Supermercado</option>
+                  <option value="Restaurant">🍽️ Restaurant</option>
+                  <option value="Hobby">🎨 Hobby</option>
+                  <option value="Cuidado_personal">💅 Cuidado personal</option>
+                  <option value="Suscripciones">📱 Suscripciones</option>
+                  <option value="Carrete">🎉 Carrete</option>
+                  <option value="Arriendo">🏠 Arriendo</option>
+                  <option value="Cuentas">📋 Cuentas</option>
+                  <option value="Viajes">✈️ Viajes</option>
+                  <option value="Traslados">🚗 Traslados</option>
+                  <option value="Mascotas">🐾 Mascotas</option>
+                  <option value="Regalos">🎁 Regalos</option>
+                  <option value="Otros">📦 Otros</option>
                 </select>
               </div>
 
