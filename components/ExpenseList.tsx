@@ -86,7 +86,7 @@ export default function ExpenseList() {
 
   useEffect(() => {
     fetchExpenses()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleYearMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedYearMonth(e.target.value)

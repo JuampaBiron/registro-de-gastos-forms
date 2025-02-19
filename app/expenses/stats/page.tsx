@@ -30,13 +30,25 @@ interface DailyExpense {
   segment: string
 }
 
+interface MonthlyTotal {
+  month: string
+  total: number
+  [key: string]: number | string // Para categorías dinámicas
+}
+
+interface CategoryTotal {
+  category: string
+  total: number
+  percentage: number
+}
+
 export default function ExpenseStats() {
   const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [monthlyTotals, setMonthlyTotals] = useState<any[]>([])
-  const [categoryTotals, setCategoryTotals] = useState<any[]>([])
+  const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([])
+  const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,7 +81,7 @@ export default function ExpenseStats() {
 
   useEffect(() => {
     fetchExpenses()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const getAvailableMonths = (expenseData: Expense[]) => {
     const months = new Set<string>()
