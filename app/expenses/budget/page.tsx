@@ -29,6 +29,10 @@ export default function BudgetPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [newBudget, setNewBudget] = useState<{category: string, amount: number} | null>(null)
   const inputRefs = useRef<{[key: string]: HTMLInputElement | null}>({})
+  // Calcular totales para la fila de resumen
+  const totalBudget = categorySpendings.reduce((sum, item) => sum + item.budget, 0);
+  const totalSpent = categorySpendings.reduce((sum, item) => sum + item.spent, 0);
+  const totalPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,6 +44,43 @@ export default function BudgetPage() {
     'Supermercado', 'Restaurant', 'Hobby', 'Cuidado_personal', 'Suscripciones',
     'Carrete', 'Arriendo', 'Cuentas', 'Viajes', 'Traslados', 'Mascotas', 'Regalos', 'Otros'
   ]
+
+
+
+  // Implementa esta función para manejar errores de manera más útil
+  const handleSupabaseError = (error: any): string => {
+    if (error && typeof error === 'object') {
+      // Si es un error de Supabase (tiene code, message, details)
+      if ('code' in error && 'message' in error) {
+        console.error("Error de Supabase:");
+        console.error("Código:", error.code);
+        console.error("Mensaje:", error.message);
+        console.error("Detalles:", error.details || "No hay detalles");
+        
+        // Mensajes amigables basados en códigos comunes
+        if (error.code === "23505") {
+          return "Este presupuesto ya existe. Se actualizará en lugar de crear uno nuevo.";
+        } else if (error.code === "42P01") {
+          return "Error de base de datos: Tabla no encontrada.";
+        } else if (error.code.startsWith("42")) {
+          return "Error de sintaxis en la consulta a la base de datos.";
+        } else if (error.code.startsWith("23")) {
+          return "Error de restricción en la base de datos.";
+        }
+      } 
+      // Si es un Error estándar de JavaScript
+      else if (error instanceof Error) {
+        console.error("Error estándar de JavaScript:");
+        console.error("Mensaje:", error.message);
+        console.error("Nombre:", error.name);
+        console.error("Stack:", error.stack);
+        return `Error: ${error.message}`;
+      }
+    }
+    
+    // Mensaje genérico por defecto
+    return "Error al guardar el presupuesto. Por favor, inténtalo de nuevo.";
+  }
 
   const fetchBudgets = async () => {
     setIsLoading(true)
@@ -160,38 +201,103 @@ export default function BudgetPage() {
 
     try {
       const existingBudget = budgets.find(b => b.category === category)
+      let errorOccurred = false;
       
       if (existingBudget) {
         // Actualizar presupuesto existente
+        console.log(`Actualizando presupuesto para ${category}:`, {
+          id: existingBudget.id,
+          amount: item.newAmount
+        });
+        
         const { error } = await supabase
           .from('budgets')
           .update({
             amount: item.newAmount
           })
-          .eq('id', existingBudget.id)
+          .eq('id', existingBudget.id);
 
-        if (error) throw error
+        if (error) {
+          console.error('Error al actualizar presupuesto:', error);
+          const errorMessage = handleSupabaseError(error);
+          alert(errorMessage);
+          errorOccurred = true;
+        }
       } else if (item.newAmount! > 0) {
         // Crear nuevo presupuesto solo si la cantidad es mayor que 0
-        const { error } = await supabase
-          .from('budgets')
-          .insert({
-            category: category,
-            amount: item.newAmount,
-            user_email: user.email
-          })
+        console.log(`Creando nuevo presupuesto para ${category}:`, {
+          category: category,
+          amount: item.newAmount,
+          user_email: user.email
+        });
         
-        if (error) throw error
+        // Primero verificamos si ya existe un presupuesto para evitar el error de duplicado
+        const { data: existingData } = await supabase
+          .from('budgets')
+          .select('*')
+          .eq('user_email', user.email)
+          .eq('category', category);
+          
+        if (existingData && existingData.length > 0) {
+          // Ya existe, actualizar en lugar de insertar
+          console.log('El presupuesto ya existe, actualizando:', existingData[0]);
+          
+          const { error } = await supabase
+            .from('budgets')
+            .update({
+              amount: item.newAmount
+            })
+            .eq('id', existingData[0].id);
+            
+          if (error) {
+            console.error('Error al actualizar presupuesto existente:', error);
+            const errorMessage = handleSupabaseError(error);
+            alert(errorMessage);
+            errorOccurred = true;
+          }
+        } else {
+          // No existe, insertar nuevo
+          const { error } = await supabase
+            .from('budgets')
+            .insert({
+              category: category,
+              amount: item.newAmount,
+              user_email: user.email
+            });
+
+          if (error) {
+            console.error('Error al insertar nuevo presupuesto:', error);
+            const errorMessage = handleSupabaseError(error);
+            alert(errorMessage);
+            errorOccurred = true;
+          }
+        }
       }
 
-      // Actualizar datos
-      await fetchBudgets()
+      // Solo actualizar los datos si no hubo error
+      if (!errorOccurred) {
+        await fetchBudgets();
+      } else {
+        // En caso de error, restaurar el valor anterior
+        setCategorySpendings(prev => prev.map(i => 
+          i.category === category ? { ...i, newAmount: i.budget, isEditing: false } : i
+        ));
+      }
     } catch (error) {
-      console.error('Error al guardar presupuesto:', error)
-      // En caso de error, restaurar el valor anterior
+      console.error('Error inesperado al guardar presupuesto:');
+      if (error instanceof Error) {
+        console.error('Mensaje:', error.message);
+        console.error('Stack:', error.stack);
+      } else {
+        console.error('Error desconocido:', error);
+      }
+      
+      alert('Error inesperado al guardar el presupuesto. Por favor, inténtalo de nuevo.');
+      
+      // Restaurar el valor anterior
       setCategorySpendings(prev => prev.map(i => 
         i.category === category ? { ...i, newAmount: i.budget, isEditing: false } : i
-      ))
+      ));
     }
   }
 
@@ -230,21 +336,51 @@ export default function BudgetPage() {
     if (!user) return
 
     try {
-      const { error } = await supabase
+      // Verificar si ya existe
+      const { data: existingData } = await supabase
         .from('budgets')
-        .insert({
-          category: newBudget.category,
-          amount: newBudget.amount,
-          user_email: user.email
-        })
-      
-      if (error) throw error
+        .select('*')
+        .eq('user_email', user.email)
+        .eq('category', newBudget.category);
+
+      if (existingData && existingData.length > 0) {
+        // Ya existe, actualizar
+        const { error } = await supabase
+          .from('budgets')
+          .update({
+            amount: newBudget.amount
+          })
+          .eq('id', existingData[0].id);
+
+        if (error) {
+          console.error('Error al actualizar presupuesto existente:', error);
+          const errorMessage = handleSupabaseError(error);
+          alert(errorMessage);
+          return;
+        }
+      } else {
+        // No existe, insertar
+        const { error } = await supabase
+          .from('budgets')
+          .insert({
+            category: newBudget.category,
+            amount: newBudget.amount,
+            user_email: user.email
+          });
+
+        if (error) {
+          console.error('Error al insertar nuevo presupuesto:', error);
+          const errorMessage = handleSupabaseError(error);
+          alert(errorMessage);
+          return;
+        }
+      }
 
       // Actualizar datos
-      fetchBudgets()
+      await fetchBudgets()
       setNewBudget(null)
     } catch (error) {
-      console.error('Error al guardar presupuesto:', error)
+      console.error('Error al guardar nuevo presupuesto:', error)
       alert('Error al guardar el presupuesto')
     }
   }
@@ -358,14 +494,20 @@ export default function BudgetPage() {
               </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
+                  <span className="text-gray-700 text-xs sm:text-sm">$</span>
                 </div>
                 <input
                   type="number"
-                  value={newBudget.amount}
-                  onChange={(e) => setNewBudget({...newBudget, amount: parseInt(e.target.value) || 0})}
-                  className="block w-full pl-8 pr-4 py-2 rounded-md border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={newBudget.amount === 0 ? '' : newBudget.amount}
+                  onChange={(e) => setNewBudget({...newBudget, amount: e.target.value === '' ? 0 : parseInt(e.target.value)})}
+                  onFocus={(e) => {
+                    if (newBudget.amount === 0) {
+                      e.target.value = '';
+                    }
+                  }}
+                  className="block w-full pl-8 pr-4 py-2 rounded-md border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                   min="0"
+                  placeholder=""
                 />
               </div>
             </div>
@@ -406,7 +548,14 @@ export default function BudgetPage() {
                   type="number"
                   value={item.isEditing ? item.newAmount : item.budget}
                   onChange={(e) => handleBudgetChange(item.category, e.target.value)}
-                  onFocus={() => handleBudgetFocus(item.category)}
+                  onFocus={(e) => {
+                    handleBudgetFocus(item.category);
+                    // Si el valor es 0, limpia el campo
+                    if (item.budget === 0 || item.newAmount === 0) {
+                      e.target.value = '';
+                      handleBudgetChange(item.category, '');
+                    }
+                  }}
                   onBlur={() => handleBudgetBlur(item.category)}
                   onKeyDown={(e) => handleKeyDown(e, item.category)}
                   className={`block w-full pl-6 md:pl-8 pr-2 md:pr-4 py-1 md:py-2 text-xs md:text-sm rounded-md border focus:ring-2 focus:border-indigo-500 text-gray-900 ${
@@ -415,7 +564,7 @@ export default function BudgetPage() {
                       : 'border-transparent hover:border-gray-300 focus:ring-indigo-500'
                   }`}
                   min="0"
-                  placeholder="0"
+                  placeholder=""
                 />
               </div>
             </div>
@@ -439,6 +588,40 @@ export default function BudgetPage() {
             </div>
           </div>
         ))}
+        {/* Fila de totales */}
+        <div className="grid grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 border-t-2 border-gray-300 items-center text-sm font-bold bg-indigo-50">
+        <div className="col-span-3 md:col-span-3 truncate text-gray-900">
+            📊 Total General
+        </div>
+        <div className="col-span-3 md:col-span-3 text-gray-900">
+            ${totalBudget.toLocaleString('es-CL')}
+        </div>
+        <div className="col-span-3 md:col-span-3 text-gray-900">
+            ${totalSpent.toLocaleString('es-CL')}
+        </div>
+        <div className="col-span-3 md:col-span-3">
+            {totalBudget > 0 ? (
+            <div className="flex flex-col">
+                <div className="w-full bg-gray-200 rounded-full h-2.5 md:h-3 mb-1">
+                <div 
+                    className={`h-2.5 md:h-3 rounded-full ${
+                    totalPercentage > 100 ? 'bg-red-600' :
+                    totalPercentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
+                    }`}
+                    style={{ width: `${Math.min(totalPercentage, 100)}%` }}
+                ></div>
+                </div>
+                <div className="text-xs">
+                {totalPercentage > 100 
+                    ? <span className="text-red-600 font-semibold">Excedido: ${(totalSpent - totalBudget).toLocaleString('es-CL')}</span> 
+                    : <span className="text-green-600 font-semibold">Disponible: ${(totalBudget - totalSpent).toLocaleString('es-CL')}</span>}
+                </div>
+            </div>
+            ) : (
+            <div className="text-xs md:text-sm text-gray-500">Sin presupuesto total</div>
+            )}
+        </div>
+        </div>
       </div>
       
       <div className="mt-6 text-center text-sm text-gray-600">
