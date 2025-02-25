@@ -136,7 +136,7 @@ export default function ExpenseStats() {
 
     // Convertir datos mensuales a formato para el gráfico
     const monthlyStats = Array.from(monthData.entries()).map(([month, categories]) => {
-      const monthStats: any = { month }
+      const monthStats: MonthlyTotal = { month, total: 0 }
       let total = 0
       
       categories.forEach((amount, category) => {
