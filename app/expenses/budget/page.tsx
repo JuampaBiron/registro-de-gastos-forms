@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { Save, ArrowLeftCircle, PlusCircle, X } from 'lucide-react'
+import { Save, Home, PlusCircle, X, BarChart3 } from 'lucide-react'
 
 interface Budget {
   id: number
@@ -249,29 +249,40 @@ export default function BudgetPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen bg-gray-100">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link 
-            href="/expenses" 
-            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            href="/" 
+            className="inline-flex items-center justify-center w-10 h-10 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            title="Volver a Inicio"
           >
-            <ArrowLeftCircle className="w-5 h-5 mr-2" />
-            Volver a Gastos
+            <Home className="w-5 h-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-800">Presupuestos Mensuales</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Presupuestos</h1>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-        >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Nuevo Presupuesto
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link 
+            href="/expenses/stats" 
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors whitespace-nowrap"
+          >
+            <BarChart3 className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Ver Estadísticas</span>
+            <span className="sm:hidden">Estadíst.</span>
+          </Link>
+          <button
+            onClick={handleAddNew}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Nuevo Presupuesto</span>
+            <span className="sm:hidden">Nuevo</span>
+          </button>
+        </div>
       </div>
 
       {/* Panel de nuevo presupuesto */}
       {newBudget && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="bg-white p-4 md:p-6 rounded-lg shadow-md mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Agregar Nuevo Presupuesto</h2>
             <button 
@@ -333,7 +344,7 @@ export default function BudgetPage() {
 
       {/* Lista de presupuestos y gastos */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50 border-b border-gray-200 font-medium text-sm text-gray-700">
+        <div className="grid grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 bg-gray-50 border-b border-gray-200 font-medium text-xs md:text-sm text-gray-700">
           <div className="col-span-3 md:col-span-3">Categoría</div>
           <div className="col-span-3 md:col-span-3">Presupuesto</div>
           <div className="col-span-3 md:col-span-3">Gastado</div>
@@ -342,66 +353,66 @@ export default function BudgetPage() {
         </div>
 
         {categorySpendings.map((item) => (
-          <div key={item.category} className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 items-center">
+          <div key={item.category} className="grid grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 border-b border-gray-200 items-center text-sm">
             {editingBudget && editingBudget.category === item.category ? (
               <>
-                <div className="col-span-3 md:col-span-3 font-medium">
+                <div className="col-span-3 md:col-span-3 font-medium truncate">
                   {getCategoryEmoji(item.category)} {formatCategoryName(item.category)}
                 </div>
                 <div className="col-span-3 md:col-span-3">
                   <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm">$</span>
+                    <div className="absolute inset-y-0 left-0 pl-2 md:pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 text-xs sm:text-sm">$</span>
                     </div>
                     <input
                       type="number"
                       value={editingBudget.amount}
                       onChange={(e) => setEditingBudget({...editingBudget, amount: parseInt(e.target.value) || 0})}
-                      className="block w-full pl-8 pr-4 py-2 rounded-md border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="block w-full pl-6 md:pl-8 pr-2 md:pr-4 py-1 md:py-2 text-xs md:text-sm rounded-md border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       min="0"
                     />
                   </div>
                 </div>
-                <div className="col-span-3 md:col-span-3 text-gray-700">
+                <div className="col-span-3 md:col-span-3 text-gray-700 truncate">
                   ${item.spent.toLocaleString('es-CL')}
                 </div>
                 <div className="col-span-2 md:col-span-2">
                   {/* No progress bar while editing */}
-                  <div className="text-sm text-gray-500">Editando...</div>
+                  <div className="text-xs md:text-sm text-gray-500">Editando...</div>
                 </div>
-                <div className="col-span-1 md:col-span-1 flex justify-end gap-2">
+                <div className="col-span-1 md:col-span-1 flex justify-end gap-1 md:gap-2">
                   <button
                     onClick={handleSaveBudget}
                     className="text-green-600 hover:text-green-800"
                     title="Guardar"
                   >
-                    <Save className="w-5 h-5" />
+                    <Save className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
                   <button
                     onClick={handleCancelEdit}
                     className="text-red-600 hover:text-red-800"
                     title="Cancelar"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <div className="col-span-3 md:col-span-3 font-medium">
+                <div className="col-span-3 md:col-span-3 font-medium truncate">
                   {getCategoryEmoji(item.category)} {formatCategoryName(item.category)}
                 </div>
-                <div className="col-span-3 md:col-span-3">
+                <div className="col-span-3 md:col-span-3 truncate">
                   {item.budget > 0 ? `$${item.budget.toLocaleString('es-CL')}` : 'No establecido'}
                 </div>
-                <div className="col-span-3 md:col-span-3 text-gray-700">
+                <div className="col-span-3 md:col-span-3 text-gray-700 truncate">
                   ${item.spent.toLocaleString('es-CL')}
                 </div>
                 <div className="col-span-2 md:col-span-2">
                   {item.budget > 0 ? (
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-2.5">
                       <div 
-                        className={`h-2.5 rounded-full ${
+                        className={`h-2 md:h-2.5 rounded-full ${
                           item.percentage > 100 ? 'bg-red-600' :
                           item.percentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
                         }`}
@@ -409,7 +420,7 @@ export default function BudgetPage() {
                       ></div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">Sin presupuesto</div>
+                    <div className="text-xs md:text-sm text-gray-500">Sin presupuesto</div>
                   )}
                 </div>
                 <div className="col-span-1 md:col-span-1 text-right">
@@ -418,7 +429,7 @@ export default function BudgetPage() {
                     className="text-blue-600 hover:text-blue-800"
                     title="Editar presupuesto"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                     </svg>
                   </button>

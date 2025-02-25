@@ -15,6 +15,7 @@ import {
   LineChart,
   Line
 } from 'recharts'
+import { Home, Wallet } from 'lucide-react'
 
 interface Expense {
   id: number
@@ -212,25 +213,36 @@ export default function ExpenseStats() {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen bg-gray-100">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Estadísticas de Gastos</h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/" 
+            className="inline-flex items-center justify-center w-10 h-10 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            title="Volver a Inicio"
+          >
+            <Home className="w-5 h-5" />
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-800">Estadísticas</h1>
+        </div>
         <Link 
-          href="/expenses"
-          className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+          href="/expenses/budget" 
+          className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors whitespace-nowrap"
         >
-          Volver a Gastos
+          <Wallet className="w-4 h-4 mr-1" />
+          <span className="hidden sm:inline">Presupuestos</span>
+          <span className="sm:hidden">Presup.</span>
         </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Gráfico de Gastos Diarios */}
-        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
-          <div className="flex justify-between items-center mb-4">
+        <div className="bg-white p-4 md:p-6 rounded-lg shadow-md md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
             <h2 className="text-lg font-semibold">Gastos Diarios del Mes</h2>
             <select
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {availableMonths.map(month => (
                 <option key={month} value={month}>
@@ -239,7 +251,7 @@ export default function ExpenseStats() {
               ))}
             </select>
           </div>
-          <div className="h-96">
+          <div className="h-80 md:h-96">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailyExpenses}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -273,7 +285,7 @@ export default function ExpenseStats() {
           </div>
           
           {/* Resumen por segmentos del mes */}
-          <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {['Inicio de mes', 'Mitad de mes', 'Fin de mes'].map(segment => {
               const segmentTotal = dailyExpenses
                 .filter(exp => exp.segment === segment)
@@ -291,9 +303,9 @@ export default function ExpenseStats() {
         </div>
 
         {/* Gráfico de Gastos Mensuales */}
-        <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+        <div className="bg-white p-4 md:p-6 rounded-lg shadow-md md:col-span-2">
           <h2 className="text-lg font-semibold mb-4">Gastos Mensuales</h2>
-          <div className="h-96">
+          <div className="h-80 md:h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyTotals}>
                 <CartesianGrid strokeDasharray="3 3" />

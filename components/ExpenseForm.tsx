@@ -172,6 +172,32 @@ export default function ExpenseForm() {
           <div className="px-8 py-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 block">
+                  Categoría
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  className="block w-full px-4 py-3 rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900"
+                  required
+                >
+                  <option value="">Selecciona una categoría</option>
+                  <option value="Supermercado">🛒 Supermercado</option>
+                  <option value="Restaurant">🍽️ Restaurant</option>
+                  <option value="Hobby">🎨 Hobby</option>
+                  <option value="Cuidado_personal">💅 Cuidado personal</option>
+                  <option value="Suscripciones">📱 Suscripciones</option>
+                  <option value="Carrete">🎉 Carrete</option>
+                  <option value="Arriendo">🏠 Arriendo</option>
+                  <option value="Cuentas">📋 Cuentas</option>
+                  <option value="Viajes">✈️ Viajes</option>
+                  <option value="Traslados">🚗 Traslados</option>
+                  <option value="Mascotas">🐾 Mascotas</option>
+                  <option value="Regalos">🎁 Regalos</option>
+                  <option value="Otros">📦 Otros</option>
+                </select>
+              </div>
                 <label className="text-sm font-medium text-gray-700 block">
                   Monto
                 </label>
@@ -190,32 +216,7 @@ export default function ExpenseForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 block">
-                  Categoría
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="block w-full px-4 py-3 rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900"
-                  required
-                >
-                  <option value="">Selecciona una categoría</option>
-                  <option value="Supermercado">🛒 Supermercado {budgets['Supermercado'] ? `(Presupuesto: $${budgets['Supermercado'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Restaurant">🍽️ Restaurant {budgets['Restaurant'] ? `(Presupuesto: $${budgets['Restaurant'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Hobby">🎨 Hobby {budgets['Hobby'] ? `(Presupuesto: $${budgets['Hobby'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Cuidado_personal">💅 Cuidado personal {budgets['Cuidado_personal'] ? `(Presupuesto: $${budgets['Cuidado_personal'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Suscripciones">📱 Suscripciones {budgets['Suscripciones'] ? `(Presupuesto: $${budgets['Suscripciones'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Carrete">🎉 Carrete {budgets['Carrete'] ? `(Presupuesto: $${budgets['Carrete'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Arriendo">🏠 Arriendo {budgets['Arriendo'] ? `(Presupuesto: $${budgets['Arriendo'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Cuentas">📋 Cuentas {budgets['Cuentas'] ? `(Presupuesto: $${budgets['Cuentas'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Viajes">✈️ Viajes {budgets['Viajes'] ? `(Presupuesto: $${budgets['Viajes'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Traslados">🚗 Traslados {budgets['Traslados'] ? `(Presupuesto: $${budgets['Traslados'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Mascotas">🐾 Mascotas {budgets['Mascotas'] ? `(Presupuesto: $${budgets['Mascotas'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Regalos">🎁 Regalos {budgets['Regalos'] ? `(Presupuesto: $${budgets['Regalos'].toLocaleString('es-CL')})` : ''}</option>
-                  <option value="Otros">📦 Otros {budgets['Otros'] ? `(Presupuesto: $${budgets['Otros'].toLocaleString('es-CL')})` : ''}</option>
-                </select>
-              </div>
+              
 
               {/* Mostrar información del presupuesto si existe para la categoría seleccionada */}
               {budgetProgress && (

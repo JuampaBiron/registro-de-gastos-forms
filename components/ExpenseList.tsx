@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Home, BarChart3, Wallet } from 'lucide-react'
 import Link from 'next/link'
 
 interface Expense {
@@ -133,28 +133,33 @@ export default function ExpenseList() {
 
   return (
     <div className="container mx-auto px-4 mt-8 min-h-screen bg-gray-100">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link 
             href="/" 
-            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            className="inline-flex items-center justify-center w-10 h-10 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            title="Volver al Inicio"
           >
-            Volver al Inicio
+            <Home className="w-5 h-5" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-800">Mis Gastos</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link 
             href="/expenses/budget" 
-            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors whitespace-nowrap"
           >
-            Presupuestos
+            <Wallet className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Presupuestos</span>
+            <span className="sm:hidden">Presup.</span>
           </Link>
           <Link 
             href="/expenses/stats" 
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors whitespace-nowrap"
           >
-            Ver Estadísticas
+            <BarChart3 className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Ver Estadísticas</span>
+            <span className="sm:hidden">Estadíst.</span>
           </Link>
         </div>
       </div>
