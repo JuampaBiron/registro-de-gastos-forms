@@ -1,4 +1,4 @@
-// pages/expenses.tsx
+// expenses/expenses.tsx
 import ExpenseList from '@/components/ExpenseList';
 
 export default function ExpensesPage() {

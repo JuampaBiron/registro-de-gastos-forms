@@ -1,3 +1,4 @@
+// expenses/stats/page.tsx
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -43,6 +44,7 @@ interface CategoryTotal {
 }
 
 export default function ExpenseStats() {
+  const [expenses, setExpenses] = useState<Expense[]>([]) // Store the raw expense data
   const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
@@ -68,12 +70,19 @@ export default function ExpenseStats() {
 
       if (error) {
         console.error('Error fetching expenses:', error)
-      } else {
+      } else if (data) {
+        // Store the raw expense data
+        setExpenses(data)
+        
         const months = getAvailableMonths(data)
         setAvailableMonths(months)
-        setSelectedMonth(months[0])
-        calculateStats(data)
-        calculateDailyExpenses(data, months[0])
+        
+        // Only proceed if we have months available
+        if (months.length > 0) {
+          setSelectedMonth(months[0])
+          calculateStats(data)
+          calculateDailyExpenses(data, months[0])
+        }
       }
     }
     setIsLoading(false)
@@ -82,6 +91,13 @@ export default function ExpenseStats() {
   useEffect(() => {
     fetchExpenses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When selectedMonth changes, recalculate the daily expenses
+  useEffect(() => {
+    if (selectedMonth && expenses.length > 0) {
+      calculateDailyExpenses(expenses, selectedMonth)
+    }
+  }, [selectedMonth, expenses])
 
   const getAvailableMonths = (expenseData: Expense[]) => {
     const months = new Set<string>()
@@ -174,7 +190,7 @@ export default function ExpenseStats() {
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newMonth = e.target.value
     setSelectedMonth(newMonth)
-    calculateDailyExpenses(monthlyTotals, newMonth)
+    // Daily expenses will be recalculated by the useEffect hook
   }
 
   const formatMonth = (monthKey: string) => {
