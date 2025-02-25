@@ -1,9 +1,25 @@
 'use client'
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { LogOut } from 'lucide-react';
 import Link from 'next/link';
+
+interface Budget {
+  id: number;
+  category: string;
+  amount: number;
+  created_at: string;
+  user_email: string;
+}
+
+interface BudgetProgress {
+  percentage: number;
+  color: string;
+  spent: number;
+  budget: number;
+  remaining: number;
+}
 
 export default function ExpenseForm() {
   const [formData, setFormData] = useState({
@@ -12,10 +28,64 @@ export default function ExpenseForm() {
     observation: ''
   });
   const [message, setMessage] = useState('');
+  const [budgets, setBudgets] = useState<{ [key: string]: number }>({});
+  const [monthlySpending, setMonthlySpending] = useState<{ [key: string]: number }>({});
+  
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  const fetchBudgets = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return;
+    
+    // Cargar presupuestos
+    const { data: budgetData, error: budgetError } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_email', user.email);
+    
+    if (budgetError) {
+      console.error('Error al cargar presupuestos:', budgetError);
+    } else if (budgetData) {
+      const budgetMap: { [key: string]: number } = {};
+      budgetData.forEach((budget: Budget) => {
+        budgetMap[budget.category] = budget.amount;
+      });
+      setBudgets(budgetMap);
+    }
+    
+    // Cargar gastos del mes actual
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString();
+    const lastDayOfMonth = new Date(currentYear, currentMonth, 0).toISOString();
+    
+    const { data: expenseData, error: expenseError } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('user_email', user.email)
+      .gte('created_at', firstDayOfMonth)
+      .lte('created_at', lastDayOfMonth);
+    
+    if (expenseError) {
+      console.error('Error al cargar gastos:', expenseError);
+    } else if (expenseData) {
+      const spendingMap: { [key: string]: number } = {};
+      expenseData.forEach((expense) => {
+        const current = spendingMap[expense.category] || 0;
+        spendingMap[expense.category] = current + expense.amount;
+      });
+      setMonthlySpending(spendingMap);
+    }
+  };
+
+  useEffect(() => {
+    fetchBudgets();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +113,9 @@ export default function ExpenseForm() {
 
       setMessage('Gasto registrado exitosamente');
       setFormData({ amount: '', category: '', observation: '' });
+      
+      // Actualizar presupuestos después de registrar un gasto
+      fetchBudgets();
     } catch (error) {
       setMessage('Error al registrar el gasto');
       console.error(error);
@@ -52,6 +125,33 @@ export default function ExpenseForm() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  const getBudgetProgress = (category: string): BudgetProgress | null => {
+    const budget = budgets[category] || 0;
+    const spent = monthlySpending[category] || 0;
+    
+    if (budget === 0) return null;
+    
+    const percentage = (spent / budget) * 100;
+    let color = 'bg-green-600';
+    
+    if (percentage > 100) {
+      color = 'bg-red-600';
+    } else if (percentage > 80) {
+      color = 'bg-yellow-500';
+    }
+    
+    return {
+      percentage: Math.min(percentage, 100),
+      color,
+      spent,
+      budget,
+      remaining: budget - spent
+    };
+  };
+
+  // Obtener el progreso del presupuesto para la categoría seleccionada
+  const budgetProgress = formData.category ? getBudgetProgress(formData.category) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 py-6 flex flex-col justify-center">
@@ -101,21 +201,48 @@ export default function ExpenseForm() {
                   required
                 >
                   <option value="">Selecciona una categoría</option>
-                  <option value="Supermercado">🛒 Supermercado</option>
-                  <option value="Restaurant">🍽️ Restaurant</option>
-                  <option value="Hobby">🎨 Hobby</option>
-                  <option value="Cuidado_personal">💅 Cuidado personal</option>
-                  <option value="Suscripciones">📱 Suscripciones</option>
-                  <option value="Carrete">🎉 Carrete</option>
-                  <option value="Arriendo">🏠 Arriendo</option>
-                  <option value="Cuentas">📋 Cuentas</option>
-                  <option value="Viajes">✈️ Viajes</option>
-                  <option value="Traslados">🚗 Traslados</option>
-                  <option value="Mascotas">🐾 Mascotas</option>
-                  <option value="Regalos">🎁 Regalos</option>
-                  <option value="Otros">📦 Otros</option>
+                  <option value="Supermercado">🛒 Supermercado {budgets['Supermercado'] ? `(Presupuesto: $${budgets['Supermercado'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Restaurant">🍽️ Restaurant {budgets['Restaurant'] ? `(Presupuesto: $${budgets['Restaurant'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Hobby">🎨 Hobby {budgets['Hobby'] ? `(Presupuesto: $${budgets['Hobby'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Cuidado_personal">💅 Cuidado personal {budgets['Cuidado_personal'] ? `(Presupuesto: $${budgets['Cuidado_personal'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Suscripciones">📱 Suscripciones {budgets['Suscripciones'] ? `(Presupuesto: $${budgets['Suscripciones'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Carrete">🎉 Carrete {budgets['Carrete'] ? `(Presupuesto: $${budgets['Carrete'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Arriendo">🏠 Arriendo {budgets['Arriendo'] ? `(Presupuesto: $${budgets['Arriendo'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Cuentas">📋 Cuentas {budgets['Cuentas'] ? `(Presupuesto: $${budgets['Cuentas'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Viajes">✈️ Viajes {budgets['Viajes'] ? `(Presupuesto: $${budgets['Viajes'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Traslados">🚗 Traslados {budgets['Traslados'] ? `(Presupuesto: $${budgets['Traslados'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Mascotas">🐾 Mascotas {budgets['Mascotas'] ? `(Presupuesto: $${budgets['Mascotas'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Regalos">🎁 Regalos {budgets['Regalos'] ? `(Presupuesto: $${budgets['Regalos'].toLocaleString('es-CL')})` : ''}</option>
+                  <option value="Otros">📦 Otros {budgets['Otros'] ? `(Presupuesto: $${budgets['Otros'].toLocaleString('es-CL')})` : ''}</option>
                 </select>
               </div>
+
+              {/* Mostrar información del presupuesto si existe para la categoría seleccionada */}
+              {budgetProgress && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Presupuesto: {formData.category.replace('_', ' ')}
+                  </h3>
+                  
+                  {/* Barra de progreso */}
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                    <div 
+                      className={`h-2.5 rounded-full ${budgetProgress.color}`}
+                      style={{ width: `${budgetProgress.percentage}%` }}
+                    ></div>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Gastado: ${budgetProgress.spent.toLocaleString('es-CL')}</span>
+                    <span>
+                      Restante: ${budgetProgress.remaining.toLocaleString('es-CL')}
+                      {budgetProgress.remaining < 0 && 
+                        <span className="text-red-600"> (Excedido)</span>
+                      }
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 block">
@@ -150,10 +277,16 @@ export default function ExpenseForm() {
               </div>
             )}
 
-            <div className="mt-8">
+            <div className="mt-8 space-y-2">
               <Link href="/expenses">
                 <button className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                   Ver mis gastos
+                </button>
+              </Link>
+              
+              <Link href="/expenses/budget">
+                <button className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                  Administrar Presupuestos
                 </button>
               </Link>
             </div>

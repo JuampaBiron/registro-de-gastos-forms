@@ -143,12 +143,20 @@ export default function ExpenseList() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-800">Mis Gastos</h1>
         </div>
-        <Link 
-          href="/expenses/stats" 
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        >
-          Ver Estadísticas
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link 
+            href="/expenses/budget" 
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+          >
+            Presupuestos
+          </Link>
+          <Link 
+            href="/expenses/stats" 
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            Ver Estadísticas
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4">
