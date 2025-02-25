@@ -6,6 +6,13 @@ import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { Save, Home, PlusCircle, X, BarChart3 } from 'lucide-react'
 
+// Improved type definitions for error handling
+interface SupabaseError {
+  code?: string;
+  message?: string;
+  details?: string;
+}
+
 interface Budget {
   id: number
   category: string
@@ -29,6 +36,7 @@ export default function BudgetPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [newBudget, setNewBudget] = useState<{category: string, amount: number} | null>(null)
   const inputRefs = useRef<{[key: string]: HTMLInputElement | null}>({})
+  
   // Calcular totales para la fila de resumen
   const totalBudget = categorySpendings.reduce((sum, item) => sum + item.budget, 0);
   const totalSpent = categorySpendings.reduce((sum, item) => sum + item.spent, 0);
@@ -45,31 +53,33 @@ export default function BudgetPage() {
     'Carrete', 'Arriendo', 'Cuentas', 'Viajes', 'Traslados', 'Mascotas', 'Regalos', 'Otros'
   ]
 
-
-
-  // Implementa esta función para manejar errores de manera más útil
-  const handleSupabaseError = (error: any): string => {
+  // Improved error handling function with better type safety
+  const handleSupabaseError = (error: unknown): string => {
+    // Type guard to check if error is an object with expected properties
     if (error && typeof error === 'object') {
-      // Si es un error de Supabase (tiene code, message, details)
+      const supabaseError = error as SupabaseError;
+
+      // Check if it's a Supabase error with code and message
       if ('code' in error && 'message' in error) {
         console.error("Error de Supabase:");
-        console.error("Código:", error.code);
-        console.error("Mensaje:", error.message);
-        console.error("Detalles:", error.details || "No hay detalles");
+        console.error("Código:", supabaseError.code);
+        console.error("Mensaje:", supabaseError.message);
+        console.error("Detalles:", supabaseError.details || "No hay detalles");
         
         // Mensajes amigables basados en códigos comunes
-        if (error.code === "23505") {
+        if (supabaseError.code === "23505") {
           return "Este presupuesto ya existe. Se actualizará en lugar de crear uno nuevo.";
-        } else if (error.code === "42P01") {
+        } else if (supabaseError.code === "42P01") {
           return "Error de base de datos: Tabla no encontrada.";
-        } else if (error.code.startsWith("42")) {
+        } else if (supabaseError.code?.startsWith("42")) {
           return "Error de sintaxis en la consulta a la base de datos.";
-        } else if (error.code.startsWith("23")) {
+        } else if (supabaseError.code?.startsWith("23")) {
           return "Error de restricción en la base de datos.";
         }
       } 
-      // Si es un Error estándar de JavaScript
-      else if (error instanceof Error) {
+      
+      // Check if it's a standard JavaScript Error
+      if (error instanceof Error) {
         console.error("Error estándar de JavaScript:");
         console.error("Mensaje:", error.message);
         console.error("Nombre:", error.name);
@@ -590,37 +600,37 @@ export default function BudgetPage() {
         ))}
         {/* Fila de totales */}
         <div className="grid grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 border-t-2 border-gray-300 items-center text-sm font-bold bg-indigo-50">
-        <div className="col-span-3 md:col-span-3 truncate text-gray-900">
+          <div className="col-span-3 md:col-span-3 truncate text-gray-900">
             📊 Total General
-        </div>
-        <div className="col-span-3 md:col-span-3 text-gray-900">
+          </div>
+          <div className="col-span-3 md:col-span-3 text-gray-900">
             ${totalBudget.toLocaleString('es-CL')}
-        </div>
-        <div className="col-span-3 md:col-span-3 text-gray-900">
+          </div>
+          <div className="col-span-3 md:col-span-3 text-gray-900">
             ${totalSpent.toLocaleString('es-CL')}
-        </div>
-        <div className="col-span-3 md:col-span-3">
+          </div>
+          <div className="col-span-3 md:col-span-3">
             {totalBudget > 0 ? (
-            <div className="flex flex-col">
+              <div className="flex flex-col">
                 <div className="w-full bg-gray-200 rounded-full h-2.5 md:h-3 mb-1">
-                <div 
+                  <div 
                     className={`h-2.5 md:h-3 rounded-full ${
-                    totalPercentage > 100 ? 'bg-red-600' :
-                    totalPercentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
+                      totalPercentage > 100 ? 'bg-red-600' :
+                      totalPercentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
                     }`}
                     style={{ width: `${Math.min(totalPercentage, 100)}%` }}
-                ></div>
+                  ></div>
                 </div>
                 <div className="text-xs">
-                {totalPercentage > 100 
+                  {totalPercentage > 100 
                     ? <span className="text-red-600 font-semibold">Excedido: ${(totalSpent - totalBudget).toLocaleString('es-CL')}</span> 
                     : <span className="text-green-600 font-semibold">Disponible: ${(totalBudget - totalSpent).toLocaleString('es-CL')}</span>}
                 </div>
-            </div>
+              </div>
             ) : (
-            <div className="text-xs md:text-sm text-gray-500">Sin presupuesto total</div>
+              <div className="text-xs md:text-sm text-gray-500">Sin presupuesto total</div>
             )}
-        </div>
+          </div>
         </div>
       </div>
       
