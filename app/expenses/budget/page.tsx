@@ -393,13 +393,13 @@ export default function BudgetPage() {
 
         {categorySpendings.map((item) => (
           <div key={item.category} className="grid grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 border-b border-gray-200 items-center text-sm">
-            <div className="col-span-3 md:col-span-3 font-medium truncate">
+            <div className="col-span-3 md:col-span-3 font-medium truncate text-gray-900">
               {getCategoryEmoji(item.category)} {formatCategoryName(item.category)}
             </div>
             <div className="col-span-3 md:col-span-3">
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-2 md:pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 text-xs sm:text-sm">$</span>
+                  <span className="text-gray-700 text-xs sm:text-sm">$</span>
                 </div>
                 <input
                   ref={(el) => setInputRef(el, item.category)}
@@ -409,7 +409,7 @@ export default function BudgetPage() {
                   onFocus={() => handleBudgetFocus(item.category)}
                   onBlur={() => handleBudgetBlur(item.category)}
                   onKeyDown={(e) => handleKeyDown(e, item.category)}
-                  className={`block w-full pl-6 md:pl-8 pr-2 md:pr-4 py-1 md:py-2 text-xs md:text-sm rounded-md border focus:ring-2 focus:border-indigo-500 ${
+                  className={`block w-full pl-6 md:pl-8 pr-2 md:pr-4 py-1 md:py-2 text-xs md:text-sm rounded-md border focus:ring-2 focus:border-indigo-500 text-gray-900 ${
                     item.isEditing 
                       ? 'border-indigo-500 focus:ring-indigo-500' 
                       : 'border-transparent hover:border-gray-300 focus:ring-indigo-500'
