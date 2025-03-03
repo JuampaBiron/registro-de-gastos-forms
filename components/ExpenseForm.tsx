@@ -146,11 +146,14 @@ export default function ExpenseForm() {
         setIsSubmitting(false);
         return;
       }
-
-      // Crear una fecha ISO a partir de la fecha seleccionada
-      const selectedDate = new Date(formData.date);
-      // Establecer la hora a mediodía para evitar problemas de zona horaria
-      selectedDate.setHours(12, 0, 0, 0);
+  
+      // Solución para asegurar la fecha correcta
+      // 1. Obtener las partes de la fecha seleccionada (YYYY-MM-DD)
+      const [year, month, day] = formData.date.split('-').map(num => parseInt(num));
+      
+      // 2. Crear un string de fecha ISO con la hora forzada a mediodía UTC
+      // Esto previene completamente el cambio de día por zona horaria
+      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T12:00:00.000Z`;
       
       const { error } = await supabase
         .from('expenses')
@@ -161,12 +164,12 @@ export default function ExpenseForm() {
             observation: formData.observation,
             user_email: user.email,
             type: formData.type,
-            created_at: selectedDate.toISOString() // Usar la fecha seleccionada con hora al mediodía
+            created_at: dateString // Usar string ISO con hora fija
           }
         ]);
-
+  
       if (error) throw error;
-
+  
       setMessage('¡Gasto registrado exitosamente!');
       setFormData({ 
         amount: '', 
