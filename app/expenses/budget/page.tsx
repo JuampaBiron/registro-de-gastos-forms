@@ -404,7 +404,7 @@ export default function BudgetPage() {
       'Supermercado': '🛒',
       'Restaurant': '🍽️',
       'Hobby': '🎨',
-      'Cuidado_personal': '💅',
+      'Cuidado personal': '💅',
       'Suscripciones': '📱',
       'Carrete': '🎉',
       'Arriendo': '🏠',
