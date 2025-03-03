@@ -1,5 +1,3 @@
-// expenses/stats/page.tsx
-// expenses/stats/page.tsx
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -21,6 +19,7 @@ import {
 } from 'recharts'
 import { ArrowLeft, Wallet, Calendar, PieChart as PieChartIcon, BarChart2, TrendingUp } from 'lucide-react'
 
+// Definiciones de interfaces
 interface Expense {
   id: number
   amount: number
@@ -50,6 +49,31 @@ interface CategoryTotal {
   percentage: number
 }
 
+// Definiciones para los componentes personalizados
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: Array<{
+    color: string
+    name: string
+    value: number
+    payload: {
+      name?: string
+    }
+  }>;
+  label?: string;
+  formatter?: (value: number) => string;
+}
+
+interface RenderCustomizedLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
+// Colores para los gráficos
 const CHART_COLORS = [
   '#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', 
   '#d0ed57', '#ffc658', '#ff8042', '#ff6361', '#bc5090', 
@@ -58,7 +82,7 @@ const CHART_COLORS = [
 ];
 
 export default function ExpenseStats() {
-  const [expenses, setExpenses] = useState<Expense[]>([]) // Store the raw expense data
+  const [expenses, setExpenses] = useState<Expense[]>([])
   const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
@@ -85,13 +109,11 @@ export default function ExpenseStats() {
       if (error) {
         console.error('Error fetching expenses:', error)
       } else if (data) {
-        // Store the raw expense data
         setExpenses(data)
         
         const months = getAvailableMonths(data)
         setAvailableMonths(months)
         
-        // Only proceed if we have months available
         if (months.length > 0) {
           setSelectedMonth(months[0])
           calculateStats(data)
@@ -106,18 +128,21 @@ export default function ExpenseStats() {
     fetchExpenses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When selectedMonth changes, recalculate the daily expenses
   useEffect(() => {
     if (selectedMonth && expenses.length > 0) {
       calculateDailyExpenses(expenses, selectedMonth)
     }
   }, [selectedMonth, expenses])
 
+  // Nombres de meses para referencia
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   // Función mejorada para evitar problemas de zona horaria
   const fixDateTimezone = (dateStr: string): Date => {
-    // Obtener solo la parte de la fecha (YYYY-MM-DD)
     const datePart = dateStr.split('T')[0];
-    // Crear una fecha a mediodía para evitar problemas de zona horaria
     return new Date(`${datePart}T12:00:00Z`);
   };
 
@@ -132,20 +157,13 @@ export default function ExpenseStats() {
   }
 
   const calculateStats = (expenseData: Expense[]) => {
-    // Calcular totales por categoría y mes
     const monthData = new Map<string, Map<string, number>>()
     const categoryMap = new Map<string, number>()
     let totalAmount = 0
     
     expenseData.forEach(expense => {
-      // Procesar datos mensuales
       const date = fixDateTimezone(expense.created_at)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      const monthNames = [
-        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-      ]
-      //const monthLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
       
       if (!monthData.has(monthKey)) {
         monthData.set(monthKey, new Map<string, number>())
@@ -155,13 +173,11 @@ export default function ExpenseStats() {
       const currentAmount = categoryMapForMonth.get(expense.category) || 0
       categoryMapForMonth.set(expense.category, currentAmount + expense.amount)
       
-      // Procesar totales por categoría
       const currentCategoryTotal = categoryMap.get(expense.category) || 0
       categoryMap.set(expense.category, currentCategoryTotal + expense.amount)
       totalAmount += expense.amount
     })
 
-    // Convertir datos mensuales a formato para el gráfico
     const monthlyStats = Array.from(monthData.entries()).map(([month, categories]) => {
       const monthNames = [
         'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -184,7 +200,6 @@ export default function ExpenseStats() {
 
     setMonthlyTotals(monthlyStats)
 
-    // Convertir totales por categoría a formato para el gráfico
     const categoryStats = Array.from(categoryMap.entries()).map(([category, total]) => ({
       category,
       total,
@@ -203,7 +218,6 @@ export default function ExpenseStats() {
       return date.getFullYear() === year && date.getMonth() + 1 === month
     })
 
-    // Inicializar todos los días del mes con valor 0
     const daysInMonth = new Date(year, month, 0).getDate()
     for (let day = 1; day <= daysInMonth; day++) {
       dailyMap.set(day, 0)
@@ -230,7 +244,6 @@ export default function ExpenseStats() {
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newMonth = e.target.value
     setSelectedMonth(newMonth)
-    // Daily expenses will be recalculated by the useEffect hook
   }
 
   const formatMonth = (monthKey: string) => {
@@ -242,7 +255,6 @@ export default function ExpenseStats() {
     return `${monthNames[parseInt(month) - 1]} ${year}`
   }
 
-  // Formato de moneda
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -251,16 +263,20 @@ export default function ExpenseStats() {
     }).format(amount);
   };
 
-  // Cálculo de totales para el mes seleccionado
   const currentMonthTotal = dailyExpenses.reduce((sum, item) => sum + item.total, 0)
 
-  // Personalización del Tooltip
-  const CustomTooltip = ({ active, payload, label, formatter }: any) => {
+  // Componente de tooltip personalizado con tipado
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ 
+    active, 
+    payload, 
+    label, 
+    formatter 
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="custom-tooltip bg-white p-3 border border-gray-200 shadow-md rounded-md">
           <p className="font-medium">{`${payload[0].payload.name || label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={`item-${index}`} style={{ color: entry.color }}>
               {`${entry.name}: ${formatter ? formatter(entry.value) : entry.value}`}
             </p>
@@ -271,8 +287,15 @@ export default function ExpenseStats() {
     return null;
   };
 
-  // Componente personalizado para renderizar etiquetas en el gráfico circular
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  // Renderizado de etiquetas personalizadas con tipado
+  const renderCustomizedLabel = ({ 
+    cx, 
+    cy, 
+    midAngle, 
+    innerRadius, 
+    outerRadius, 
+    percent 
+  }: RenderCustomizedLabelProps) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -292,6 +315,7 @@ export default function ExpenseStats() {
     ) : null;
   };
 
+  // El resto del código de renderizado permanece igual al original
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex flex-col justify-center">
@@ -340,7 +364,7 @@ export default function ExpenseStats() {
                   id="monthSelect"
                   value={selectedMonth}
                   onChange={handleMonthChange}
-                  className="w-full sm:w-auto px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full sm:w-auto px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none:focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500"
                 >
                   {availableMonths.map(month => (
                     <option key={month} value={month}>
