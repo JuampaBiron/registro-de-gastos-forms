@@ -47,15 +47,6 @@ export default function ExpenseForm() {
     return `${year}-${month}-${day}`;
   }
 
-  // Función para extraer año y mes de una fecha
-  function getYearMonth(dateStr: string): { year: number, month: number } {
-    const date = new Date(dateStr);
-    return {
-      year: date.getFullYear(),
-      month: date.getMonth() + 1
-    };
-  }
-
   const fetchBudgets = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -107,6 +98,7 @@ export default function ExpenseForm() {
 
   useEffect(() => {
     fetchBudgets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.date]); // Actualizar cuando cambie la fecha seleccionada
 
   const handleSubmit = async (e: React.FormEvent) => {
