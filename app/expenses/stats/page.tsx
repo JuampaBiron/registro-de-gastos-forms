@@ -145,7 +145,7 @@ export default function ExpenseStats() {
         'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
       ]
-      const monthLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
+      //const monthLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
       
       if (!monthData.has(monthKey)) {
         monthData.set(monthKey, new Map<string, number>())
@@ -272,7 +272,7 @@ export default function ExpenseStats() {
   };
 
   // Componente personalizado para renderizar etiquetas en el gráfico circular
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);

@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { Save, ArrowLeft, PlusCircle, X, BarChart3, Wallet, Edit2 } from 'lucide-react'
+import { Save, ArrowLeft, PlusCircle, X, BarChart3, Edit2 } from 'lucide-react'
 
 // Improved type definitions for error handling
 interface SupabaseError {
