@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Trash2, BarChart3, Wallet, Filter, ArrowLeft, Calendar, Tag } from 'lucide-react'
+import { Trash2, ArrowLeft, BarChart3, Wallet, Filter, Calendar, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 interface Expense {
@@ -41,6 +41,31 @@ export default function ExpenseList() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+  
+  // Aplicar filtros (definir esto antes de cualquier useEffect que lo use)
+  const filteredExpenses = expenses.filter((expense) => {
+    // Year-Month filter
+    const expenseDate = new Date(expense.created_at)
+    const expenseYearMonth = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}`
+    
+    const yearMonthMatch = selectedYearMonth ? expenseYearMonth === selectedYearMonth : true
+    
+    // Category filter
+    const categoryMatch = selectedCategory ? expense.category === selectedCategory : true
+    
+    // Type filter
+    const typeMatch = selectedType ? expense.type === selectedType : true
+    
+    return yearMonthMatch && categoryMatch && typeMatch
+  })
+
+  useEffect(() => {
+    // Calculate total for filtered expenses
+    const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+    setTotalAmount(total)
+  }, [selectedYearMonth, selectedCategory, selectedType, expenses, filteredExpenses])
 
   const fetchExpenses = async () => {
     setIsLoading(true)
@@ -56,13 +81,16 @@ export default function ExpenseList() {
       if (error) {
         console.error('Error fetching expenses:', error)
       } else {
-        setExpenses(data)
+        // Log para debugging
+        console.log('Datos recuperados:', data?.length || 0, 'gastos')
+        
+        setExpenses(data || [])
         
         // Extract unique categories
-        const uniqueCategories = Array.from(new Set(data.map((expense: Expense) => expense.category)))
+        const uniqueCategories = Array.from(new Set(data?.map((expense: Expense) => expense.category) || []))
         setCategories(uniqueCategories.sort())
         
-        const yearMonths = data.reduce((acc: YearMonth[], expense) => {
+        const yearMonths = (data || []).reduce((acc: YearMonth[], expense) => {
           const date = new Date(expense.created_at)
           const year = date.getFullYear()
           const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -88,8 +116,9 @@ export default function ExpenseList() {
         
         setAvailableYearMonths(yearMonths)
         
-        if (!yearMonths.some(ym => `${ym.year}-${ym.month}` === defaultYearMonth)) {
-          setSelectedYearMonth(yearMonths.length > 0 ? `${yearMonths[0].year}-${yearMonths[0].month}` : '')
+        if (yearMonths.length > 0 && !yearMonths.some(ym => `${ym.year}-${ym.month}` === defaultYearMonth)) {
+          console.log('No hay datos para el mes actual, usando el más reciente disponible')
+          setSelectedYearMonth(`${yearMonths[0].year}-${yearMonths[0].month}`)
         }
       }
     }
@@ -99,12 +128,6 @@ export default function ExpenseList() {
   useEffect(() => {
     fetchExpenses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    // Calculate total for filtered expenses
-    const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-    setTotalAmount(total)
-  }, [selectedYearMonth, selectedCategory, selectedType, expenses])
 
   const handleYearMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedYearMonth(e.target.value)
@@ -183,25 +206,6 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
-  // Apply all filters
-  const filteredExpenses = expenses.filter((expense) => {
-    // Year-Month filter
-    const expenseDate = new Date(expense.created_at)
-    const expenseYearMonth = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}`
-    
-    const yearMonthMatch = selectedYearMonth ? expenseYearMonth === selectedYearMonth : true
-    
-    // Category filter
-    const categoryMatch = selectedCategory ? expense.category === selectedCategory : true
-    
-    // Type filter
-    const typeMatch = selectedType ? expense.type === selectedType : true
-    
-    return yearMonthMatch && categoryMatch && typeMatch
-  })
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -238,8 +242,8 @@ export default function ExpenseList() {
 
           {/* Filters */}
           <div className="px-6 py-4 bg-gray-50 border-b">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex-1 min-w-[200px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
                 <label htmlFor="yearMonth" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Calendar className="w-4 h-4 mr-1 text-indigo-500" /> Mes
                 </label>
@@ -258,7 +262,7 @@ export default function ExpenseList() {
                 </select>
               </div>
               
-              <div className="flex-1 min-w-[200px]">
+              <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Tag className="w-4 h-4 mr-1 text-indigo-500" /> Categoría
                 </label>
@@ -277,7 +281,7 @@ export default function ExpenseList() {
                 </select>
               </div>
               
-              <div className="flex-1 min-w-[200px]">
+              <div>
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Filter className="w-4 h-4 mr-1 text-indigo-500" /> Tipo
                 </label>
@@ -292,22 +296,24 @@ export default function ExpenseList() {
                   <option value="Compartido">Compartido</option>
                 </select>
               </div>
-              
+            </div>
+            
+            <div className="mt-4 flex justify-between items-center">
               <button
                 onClick={resetFilters}
                 className="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               >
                 Limpiar filtros
               </button>
-            </div>
-            
-            {/* Total display */}
-            <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600">Total {selectedYearMonth ? 'del mes' : ''} {selectedCategory ? `en ${selectedCategory}` : ''} {selectedType ? `(${selectedType})` : ''}:</span>
-                <span className="text-lg font-bold text-indigo-700">
-                  {formatCurrency(totalAmount)}
-                </span>
+              
+              {/* Total display */}
+              <div className="p-2 px-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex items-center">
+                  <span className="text-sm font-medium text-gray-600 mr-2">Total:</span>
+                  <span className="text-lg font-bold text-indigo-700 tabular-nums">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -370,7 +376,7 @@ export default function ExpenseList() {
                             {expense.type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 tabular-nums">
                           {formatCurrency(expense.amount)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
@@ -392,44 +398,53 @@ export default function ExpenseList() {
               </div>
 
               {/* Vista de tarjetas para móviles y tablets */}
-              <div className="lg:hidden divide-y divide-gray-200">
+              <div className="lg:hidden">
                 {filteredExpenses.map((expense) => (
-                  <div key={expense.id} className="p-4 hover:bg-gray-50">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <div className="flex items-center mb-1">
-                          <span className="mr-2">{getCategoryEmoji(expense.category)}</span>
-                          <span className="font-medium text-gray-900">{expense.category}</span>
-                          <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            expense.type === 'Individual' 
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {expense.type}
-                          </span>
-                        </div>
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatCurrency(expense.amount)}
-                        </span>
-                        {expense.observation && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            {expense.observation}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm text-gray-500 mb-2">
-                          {new Date(expense.created_at).toLocaleDateString('es-CL')}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteClick(expense)}
-                          className="text-red-600 hover:text-red-800 transition-colors p-1 rounded-full hover:bg-red-50"
-                          title="Eliminar gasto"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+                  <div key={expense.id} className="p-4 border-b border-gray-200 hover:bg-gray-50">
+                    {/* Fila superior: Fecha y botón eliminar */}
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-500">
+                        {new Date(expense.created_at).toLocaleDateString('es-CL')}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteClick(expense)}
+                        className="text-red-600 hover:text-red-800 transition-colors p-1 rounded-full hover:bg-red-50"
+                        title="Eliminar gasto"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
+                    
+                    {/* Fila central: Categoría y tipo */}
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center">
+                        <span className="mr-2 text-lg">{getCategoryEmoji(expense.category)}</span>
+                        <span className="font-medium text-gray-900">{expense.category}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        expense.type === 'Individual' 
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {expense.type}
+                      </span>
+                    </div>
+                    
+                    {/* Fila del monto */}
+                    <div className="my-2">
+                      <span className="text-xl font-bold text-gray-900 tabular-nums">
+                        {formatCurrency(expense.amount)}
+                      </span>
+                    </div>
+                    
+                    {/* Observación (si existe) */}
+                    {expense.observation && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 break-words">
+                          {expense.observation}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
