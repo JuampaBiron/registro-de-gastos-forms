@@ -135,10 +135,10 @@ export default function ExpenseStats() {
   }, [selectedMonth, expenses])
 
   // Nombres de meses para referencia
-  const monthNames = [
+  /*const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+  ]*/;
 
   // Función mejorada para evitar problemas de zona horaria
   const fixDateTimezone = (dateStr: string): Date => {
