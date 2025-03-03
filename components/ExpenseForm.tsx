@@ -148,10 +148,9 @@ export default function ExpenseForm() {
       }
 
       // Crear una fecha ISO a partir de la fecha seleccionada
-      // Esto mantendrá la fecha seleccionada pero usará la hora actual
       const selectedDate = new Date(formData.date);
-      const now = new Date();
-      selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      // Establecer la hora a mediodía para evitar problemas de zona horaria
+      selectedDate.setHours(12, 0, 0, 0);
       
       const { error } = await supabase
         .from('expenses')
@@ -162,7 +161,7 @@ export default function ExpenseForm() {
             observation: formData.observation,
             user_email: user.email,
             type: formData.type,
-            created_at: selectedDate.toISOString() // Usar la fecha seleccionada
+            created_at: selectedDate.toISOString() // Usar la fecha seleccionada con hora al mediodía
           }
         ]);
 
@@ -265,7 +264,7 @@ export default function ExpenseForm() {
       <div className="relative sm:max-w-xl sm:mx-auto w-full px-4">
         <div className="relative bg-white shadow-xl rounded-3xl overflow-hidden">
           {/* Header con gradiente */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-4 flex justify-between items-center">
             <h2 className="text-2xl font-bold text-white flex items-center">
               <Wallet className="mr-2 h-6 w-6" /> Registro de Gastos
             </h2>

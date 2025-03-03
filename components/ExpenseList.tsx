@@ -41,31 +41,6 @@ export default function ExpenseList() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  
-  // Aplicar filtros (definir esto antes de cualquier useEffect que lo use)
-  const filteredExpenses = expenses.filter((expense) => {
-    // Year-Month filter
-    const expenseDate = new Date(expense.created_at)
-    const expenseYearMonth = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}`
-    
-    const yearMonthMatch = selectedYearMonth ? expenseYearMonth === selectedYearMonth : true
-    
-    // Category filter
-    const categoryMatch = selectedCategory ? expense.category === selectedCategory : true
-    
-    // Type filter
-    const typeMatch = selectedType ? expense.type === selectedType : true
-    
-    return yearMonthMatch && categoryMatch && typeMatch
-  })
-
-  useEffect(() => {
-    // Calculate total for filtered expenses
-    const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-    setTotalAmount(total)
-  }, [selectedYearMonth, selectedCategory, selectedType, expenses, filteredExpenses])
 
   const fetchExpenses = async () => {
     setIsLoading(true)
@@ -124,6 +99,31 @@ export default function ExpenseList() {
     }
     setIsLoading(false)
   }
+
+  // Aplicar filtros
+  const filteredExpenses = expenses.filter((expense) => {
+    // Year-Month filter
+    const expenseDate = new Date(expense.created_at)
+    const expenseYearMonth = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}`
+    
+    const yearMonthMatch = selectedYearMonth ? expenseYearMonth === selectedYearMonth : true
+    
+    // Category filter
+    const categoryMatch = selectedCategory ? expense.category === selectedCategory : true
+    
+    // Type filter
+    const typeMatch = selectedType ? expense.type === selectedType : true
+    
+    return yearMonthMatch && categoryMatch && typeMatch
+  })
+
+  useEffect(() => {
+    // Calculate total for filtered expenses
+    const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+    setTotalAmount(total)
+  }, [selectedYearMonth, selectedCategory, selectedType, expenses, filteredExpenses])
 
   useEffect(() => {
     fetchExpenses()
@@ -207,9 +207,12 @@ export default function ExpenseList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    // Contenedor principal directo con el fondo, sin contenedores adicionales
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex flex-col justify-center">
+      {/* Tarjeta principal con el contenido */}
+      <div className="max-w-6xl mx-auto w-full px-4">
+        <div className="bg-white shadow-xl rounded-3xl overflow-hidden">
+          
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
             <div className="flex items-center space-x-4">
@@ -240,11 +243,12 @@ export default function ExpenseList() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="px-6 py-4 bg-gray-50 border-b">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Filtros */}
+          <div className="p-4 bg-gray-50 border-b">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              {/* Filtro mes */}
               <div>
-                <label htmlFor="yearMonth" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label htmlFor="yearMonth" className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Calendar className="w-4 h-4 mr-1 text-indigo-500" /> Mes
                 </label>
                 <select
@@ -262,8 +266,9 @@ export default function ExpenseList() {
                 </select>
               </div>
               
+              {/* Filtro categoría */}
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label htmlFor="category" className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Tag className="w-4 h-4 mr-1 text-indigo-500" /> Categoría
                 </label>
                 <select
@@ -281,8 +286,9 @@ export default function ExpenseList() {
                 </select>
               </div>
               
+              {/* Filtro tipo */}
               <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label htmlFor="type" className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <Filter className="w-4 h-4 mr-1 text-indigo-500" /> Tipo
                 </label>
                 <select
@@ -298,7 +304,8 @@ export default function ExpenseList() {
               </div>
             </div>
             
-            <div className="mt-4 flex justify-between items-center">
+            {/* Controles y total */}
+            <div className="flex justify-between items-center">
               <button
                 onClick={resetFilters}
                 className="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
@@ -318,10 +325,10 @@ export default function ExpenseList() {
             </div>
           </div>
           
-          {/* Loading state */}
+          {/* Contenido principal (loading, sin resultados, lista de gastos) */}
           {isLoading ? (
             <div className="p-8 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent align-[-0.125em]"></div>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
               <p className="mt-2 text-gray-600">Cargando tus gastos...</p>
             </div>
           ) : filteredExpenses.length === 0 ? (
@@ -331,76 +338,74 @@ export default function ExpenseList() {
           ) : (
             <>
               {/* Vista de tabla para pantallas grandes */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Categoría
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tipo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Monto
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Observación
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
+              <table className="min-w-full divide-y divide-gray-200 hidden lg:table">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Categoría
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Monto
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Observación
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredExpenses.map((expense) => (
+                    <tr key={expense.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(expense.created_at).toLocaleDateString('es-CL')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center">
+                          <span className="mr-2">{getCategoryEmoji(expense.category)}</span>
+                          {expense.category}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          expense.type === 'Individual' 
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {expense.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 tabular-nums">
+                        {formatCurrency(expense.amount)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        {expense.observation || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <button
+                          onClick={() => handleDeleteClick(expense)}
+                          className="text-red-600 hover:text-red-800 transition-colors p-1 rounded-full hover:bg-red-50"
+                          title="Eliminar gasto"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredExpenses.map((expense) => (
-                      <tr key={expense.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(expense.created_at).toLocaleDateString('es-CL')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <div className="flex items-center">
-                            <span className="mr-2">{getCategoryEmoji(expense.category)}</span>
-                            {expense.category}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            expense.type === 'Individual' 
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {expense.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 tabular-nums">
-                          {formatCurrency(expense.amount)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                          {expense.observation || "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                          <button
-                            onClick={() => handleDeleteClick(expense)}
-                            className="text-red-600 hover:text-red-800 transition-colors p-1 rounded-full hover:bg-red-50"
-                            title="Eliminar gasto"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
 
-              {/* Vista de tarjetas para móviles y tablets */}
-              <div className="lg:hidden">
+              {/* Vista de tarjetas para móviles */}
+              <div className="lg:hidden divide-y divide-gray-200">
                 {filteredExpenses.map((expense) => (
-                  <div key={expense.id} className="p-4 border-b border-gray-200 hover:bg-gray-50">
+                  <div key={expense.id} className="p-4 hover:bg-gray-50">
                     {/* Fila superior: Fecha y botón eliminar */}
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-500">
@@ -453,7 +458,7 @@ export default function ExpenseList() {
         </div>
       </div>
 
-      {/* Modal de confirmación */}
+      {/* Modal de confirmación - fuera de la tarjeta principal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
@@ -482,5 +487,5 @@ export default function ExpenseList() {
         </div>
       )}
     </div>
-  )
+  );
 }
