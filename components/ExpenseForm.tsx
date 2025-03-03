@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { LogOut, TrendingUp, Wallet, CreditCard, ArrowRight } from 'lucide-react';
+import { LogOut, TrendingUp, Wallet, CreditCard, ArrowRight, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 interface Budget {
@@ -26,7 +26,8 @@ export default function ExpenseForm() {
     amount: '',
     category: '',
     observation: '',
-    type: 'Individual'
+    type: 'Individual',
+    date: formatDate(new Date()) // Fecha actual en formato YYYY-MM-DD
   });
   const [message, setMessage] = useState('');
   const [budgets, setBudgets] = useState<{ [key: string]: number }>({});
@@ -37,6 +38,23 @@ export default function ExpenseForm() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Función para formatear fecha en YYYY-MM-DD para el input date
+  function formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Función para extraer año y mes de una fecha
+  function getYearMonth(dateStr: string): { year: number, month: number } {
+    const date = new Date(dateStr);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1
+    };
+  }
 
   const fetchBudgets = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -59,12 +77,14 @@ export default function ExpenseForm() {
       setBudgets(budgetMap);
     }
     
-    // Cargar gastos del mes actual
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
-    const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString();
-    const lastDayOfMonth = new Date(currentYear, currentMonth, 0).toISOString();
+    // Usar la fecha seleccionada en el form para determinar el mes
+    const selectedDate = new Date(formData.date);
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = selectedDate.getMonth() + 1;
+    
+    // Cargar gastos del mes seleccionado
+    const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString();
+    const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString();
     
     const { data: expenseData, error: expenseError } = await supabase
       .from('expenses')
@@ -87,7 +107,7 @@ export default function ExpenseForm() {
 
   useEffect(() => {
     fetchBudgets();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [formData.date]); // Actualizar cuando cambie la fecha seleccionada
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +122,12 @@ export default function ExpenseForm() {
         return;
       }
 
+      // Crear una fecha ISO a partir de la fecha seleccionada
+      // Esto mantendrá la fecha seleccionada pero usará la hora actual
+      const selectedDate = new Date(formData.date);
+      const now = new Date();
+      selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      
       const { error } = await supabase
         .from('expenses')
         .insert([
@@ -110,14 +136,21 @@ export default function ExpenseForm() {
             category: formData.category,
             observation: formData.observation,
             user_email: user.email,
-            type: formData.type
+            type: formData.type,
+            created_at: selectedDate.toISOString() // Usar la fecha seleccionada
           }
         ]);
 
       if (error) throw error;
 
       setMessage('¡Gasto registrado exitosamente!');
-      setFormData({ amount: '', category: '', observation: '', type: 'Individual' });
+      setFormData({ 
+        amount: '', 
+        category: '', 
+        observation: '', 
+        type: 'Individual',
+        date: formData.date // Mantener la fecha seleccionada
+      });
       
       // Actualizar presupuestos después de registrar un gasto
       fetchBudgets();
@@ -195,6 +228,12 @@ export default function ExpenseForm() {
     }).format(amount);
   };
 
+  // Obtener el nombre del mes seleccionado
+  const getMonthName = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex flex-col justify-center">
       <div className="relative sm:max-w-xl sm:mx-auto w-full px-4">
@@ -215,6 +254,21 @@ export default function ExpenseForm() {
 
           <div className="px-8 py-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Selector de fecha */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center">
+                  <Calendar className="w-4 h-4 mr-1" /> Fecha del gasto
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  className="block w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors text-gray-900 shadow-sm"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Registrando gasto para: {getMonthName(formData.date)}</p>
+              </div>
+
               {/* Categoría con diseño mejorado */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center">
@@ -316,7 +370,7 @@ export default function ExpenseForm() {
               {budgetProgress && (
                 <div className="p-5 bg-white border border-gray-200 rounded-xl shadow-sm">
                   <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    {getCategoryEmoji(formData.category)} Presupuesto: {formData.category}
+                    {getCategoryEmoji(formData.category)} Presupuesto: {formData.category} ({getMonthName(formData.date)})
                   </h3>
                   
                   {/* Barra de progreso mejorada */}
