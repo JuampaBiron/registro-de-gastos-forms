@@ -29,6 +29,7 @@ export default function ExpenseForm() {
     type: 'Individual',
     date: formatDate(new Date()) // Fecha actual en formato YYYY-MM-DD
   });
+  const [formattedAmount, setFormattedAmount] = useState('');
   const [message, setMessage] = useState('');
   const [budgets, setBudgets] = useState<{ [key: string]: number }>({});
   const [monthlySpending, setMonthlySpending] = useState<{ [key: string]: number }>({});
@@ -46,6 +47,38 @@ export default function ExpenseForm() {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
+
+  // Función para formatear números con separador de miles
+  const formatNumber = (value: string): string => {
+    // Remover caracteres no numéricos excepto punto decimal
+    const numericValue = value.replace(/[^\d]/g, '');
+    // Formatear con separador de miles
+    return new Intl.NumberFormat('es-CL').format(
+      numericValue === '' ? 0 : parseInt(numericValue)
+    );
+  };
+
+  // Efecto para actualizar el monto formateado cuando cambia formData.amount
+  useEffect(() => {
+    if (formData.amount === '') {
+      setFormattedAmount('');
+    } else {
+      setFormattedAmount(formatNumber(formData.amount));
+    }
+  }, [formData.amount]);
+
+  // Manejar cambios en el input de monto
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Remover todos los caracteres no numéricos
+    const numericValue = value.replace(/[^\d]/g, '');
+    
+    // Actualizar el estado raw sin formato
+    setFormData({...formData, amount: numericValue});
+    
+    // El valor formateado se actualizará mediante el useEffect
+  };
 
   const fetchBudgets = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -143,6 +176,7 @@ export default function ExpenseForm() {
         type: 'Individual',
         date: formData.date // Mantener la fecha seleccionada
       });
+      setFormattedAmount('');
       
       // Actualizar presupuestos después de registrar un gasto
       fetchBudgets();
@@ -289,7 +323,7 @@ export default function ExpenseForm() {
                 </select>
               </div>
 
-              {/* Monto con diseño mejorado */}
+              {/* Monto con diseño mejorado y separador de miles */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center">
                   <TrendingUp className="w-4 h-4 mr-1" /> Monto
@@ -299,12 +333,13 @@ export default function ExpenseForm() {
                     <span className="text-gray-500 sm:text-sm">$</span>
                   </div>
                   <input
-                    type="number"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    type="text"
+                    value={formattedAmount}
+                    onChange={handleAmountChange}
                     className="block w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors text-gray-900 shadow-sm"
                     placeholder="0"
                     required
+                    inputMode="numeric"
                   />
                 </div>
               </div>
