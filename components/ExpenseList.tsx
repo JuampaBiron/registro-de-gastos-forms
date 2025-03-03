@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Trash2, Home, BarChart3, Wallet, Filter, ArrowLeft, Calendar, Tag } from 'lucide-react'
+import { Trash2, BarChart3, Wallet, Filter, ArrowLeft, Calendar, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 interface Expense {
