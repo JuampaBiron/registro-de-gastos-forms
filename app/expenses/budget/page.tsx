@@ -496,23 +496,6 @@ export default function BudgetPage() {
   
   // Hook para detectar modo oscuro
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Detectar modo oscuro del sistema
-  useEffect(() => {
-    // Verificar preferencia del sistema
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(darkModeMediaQuery.matches);
-
-    // Listener para cambios en tiempo real
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches);
-    };
-
-    darkModeMediaQuery.addEventListener('change', handleChange);
-    return () => {
-      darkModeMediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
   
   // Limpiar el valor formateado para obtener solo números
   const cleanFormattedValue = (value: string): string => {
