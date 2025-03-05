@@ -494,9 +494,6 @@ export default function BudgetPage() {
     }
   };
   
-  // Hook para detectar modo oscuro
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  
   // Limpiar el valor formateado para obtener solo números
   const cleanFormattedValue = (value: string): string => {
     if (!value) return '';
