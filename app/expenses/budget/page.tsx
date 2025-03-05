@@ -466,16 +466,36 @@ export default function BudgetPage() {
     }).format(amount);
   };
   
-  // Formatear número con separadores de miles
+  // Formatear número con separadores de miles de manera forzada
   const formatNumber = (value: string | number): string => {
-    // Si es número, convertirlo a string
-    const stringValue = typeof value === 'number' ? value.toString() : value;
-    // Remover caracteres no numéricos
-    const numericValue = stringValue.replace(/[^\d]/g, '');
-    // Formatear con separador de miles
-    return new Intl.NumberFormat('es-CL').format(
-      numericValue === '' ? 0 : parseInt(numericValue)
-    );
+    try {
+      // Si es número, convertirlo a string
+      const stringValue = typeof value === 'number' ? value.toString() : value;
+      // Remover caracteres no numéricos excepto punto decimal
+      const numericValue = stringValue.replace(/[^\d]/g, '');
+      // Formatear con separador de miles usando función nativa
+      const formattedValue = new Intl.NumberFormat('es-CL', {
+        useGrouping: true,
+        maximumFractionDigits: 0
+      }).format(
+        numericValue === '' ? 0 : parseInt(numericValue)
+      );
+      
+      console.log(`Formateo: ${value} -> ${formattedValue}`);
+      return formattedValue;
+    } catch (error) {
+      console.error('Error al formatear número:', error);
+      // En caso de error, al menos intentar dar formato manual básico
+      const numStr = String(value);
+      let result = '';
+      for (let i = 0; i < numStr.length; i++) {
+        result += numStr[i];
+        if ((numStr.length - i - 1) % 3 === 0 && i < numStr.length - 1) {
+          result += '.';
+        }
+      }
+      return result;
+    }
   };
   
   // Limpiar el valor formateado para obtener solo números
@@ -703,9 +723,7 @@ export default function BudgetPage() {
                       <input
                         ref={(el) => setInputRef(el, item.category)}
                         type="text"
-                        value={item.isEditing ? 
-                          item.formattedAmount || '' : 
-                          (item.budget === 0 ? '' : formatNumber(item.budget))}
+                        value={item.budget === 0 ? '' : formatNumber(item.budget)}
                         onChange={(e) => handleBudgetChange(item.category, e.target.value)}
                         onFocus={() => {
                           handleBudgetFocus(item.category);
@@ -793,10 +811,10 @@ export default function BudgetPage() {
                   {/* Presupuesto y gastado */}
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div>
-                      <div className="text-xs text-gray-700 mb-1">Presupuesto</div>
+                      <div className="text-xs text-gray-500 mb-1">Presupuesto</div>
                       <div className="relative rounded-lg shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                          <span className="text-gray-900 text-xs">$</span>
+                          <span className="text-gray-700 text-xs">$</span>
                         </div>
                         <input
                           ref={(el) => setInputRef(el, item.category)}
@@ -851,8 +869,8 @@ export default function BudgetPage() {
                       <div className="flex justify-between mt-1 text-xs font-medium">
                         <span className="text-gray-800">
                           {item.percentage > 100 
-                            ? `${formatCurrency(item.spent - item.budget)} excedido` 
-                            : `${formatCurrency(item.budget - item.spent)} disponible`}
+                            ? <span dangerouslySetInnerHTML={{ __html: `${formatNumber(item.spent - item.budget)} excedido` }} /> 
+                            : <span dangerouslySetInnerHTML={{ __html: `${formatNumber(item.budget - item.spent)} disponible` }} />}
                         </span>
                       </div>
                     </div>
