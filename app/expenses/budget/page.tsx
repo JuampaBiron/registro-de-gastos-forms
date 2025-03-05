@@ -793,10 +793,10 @@ export default function BudgetPage() {
                   {/* Presupuesto y gastado */}
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Presupuesto</div>
+                      <div className="text-xs text-gray-700 mb-1">Presupuesto</div>
                       <div className="relative rounded-lg shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                          <span className="text-gray-700 text-xs">$</span>
+                          <span className="text-gray-900 text-xs">$</span>
                         </div>
                         <input
                           ref={(el) => setInputRef(el, item.category)}
