@@ -685,7 +685,7 @@ export default function BudgetPage() {
                         type="text"
                         value={item.isEditing ? item.formattedAmount : (item.budget === 0 ? '' : formatNumber(item.budget))}
                         onChange={(e) => handleBudgetChange(item.category, e.target.value)}
-                        onFocus={(e) => {
+                        onFocus={() => {
                           handleBudgetFocus(item.category);
                           if (item.budget === 0) {
                             handleBudgetChange(item.category, '');
