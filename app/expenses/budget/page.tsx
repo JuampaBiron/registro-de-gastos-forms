@@ -146,7 +146,7 @@ export default function BudgetPage() {
         const budget = budgetData?.find(b => b.category === category)?.amount || 0
         const spent = categoryMap.get(category) || 0
         const percentage = budget > 0 ? (spent / budget) * 100 : 0
-        const formattedAmount = budget > 0 ? formatNumber(budget) : ''
+        const formattedAmount = budget > 0 ? budget.toLocaleString('es-CL') : ''
         
         spendings.push({
           category,
@@ -174,7 +174,7 @@ export default function BudgetPage() {
       
       // Asegurarnos de que los valores formateados estén correctamente inicializados
       spendings.forEach(item => {
-        item.formattedAmount = item.budget > 0 ? formatNumber(item.budget) : '';
+        item.formattedAmount = item.budget > 0 ? item.budget.toLocaleString('es-CL') : '';
       })
       
       setCategorySpendings(spendings)
@@ -194,7 +194,7 @@ export default function BudgetPage() {
             ...item, 
             isEditing: true,
             // Asegurarnos que formattedAmount esté correctamente inicializado
-            formattedAmount: item.budget === 0 ? '' : formatNumber(item.budget)
+            formattedAmount: item.budget === 0 ? '' : item.budget.toLocaleString('es-CL')
           }
         : item
     ))
@@ -208,7 +208,7 @@ export default function BudgetPage() {
     const amount = numericValue === '' ? 0 : parseInt(numericValue);
     
     // Formatear para mostrar con separadores de miles
-    const formattedValue = numericValue === '' ? '' : formatNumber(numericValue);
+    const formattedValue = numericValue === '' ? '' : amount.toLocaleString('es-CL');
     
     setCategorySpendings(prev => prev.map(item => 
       item.category === category 
@@ -318,7 +318,7 @@ export default function BudgetPage() {
           i.category === category ? { 
             ...i, 
             newAmount: i.budget, 
-            formattedAmount: i.budget > 0 ? formatNumber(i.budget) : '',
+            formattedAmount: i.budget > 0 ? i.budget.toLocaleString('es-CL') : '',
             isEditing: false 
           } : i
         ));
@@ -339,7 +339,7 @@ export default function BudgetPage() {
         i.category === category ? { 
           ...i, 
           newAmount: i.budget, 
-          formattedAmount: i.budget > 0 ? formatNumber(i.budget) : '',
+          formattedAmount: i.budget > 0 ? i.budget.toLocaleString('es-CL') : '',
           isEditing: false 
         } : i
       ));
