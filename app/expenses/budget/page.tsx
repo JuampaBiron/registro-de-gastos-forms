@@ -1,4 +1,4 @@
-// expenses/budget/page.tsx 
+// expenses/budget/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -28,7 +28,8 @@ interface CategorySpending {
   percentage: number
   isEditing?: boolean
   newAmount?: number
-  formattedAmount?: string // Para almacenar el monto con formato
+  rawAmount?: string // Para almacenar el valor numérico sin formato
+  formattedAmount?: string // Para mostrar el valor con formato
 }
 
 export default function BudgetPage() {
@@ -174,7 +175,8 @@ export default function BudgetPage() {
       
       // Asegurarnos de que los valores formateados estén correctamente inicializados
       spendings.forEach(item => {
-        item.formattedAmount = item.budget > 0 ? formatMoney(item.budget) : '';
+        item.rawAmount = item.budget > 0 ? item.budget.toString() : '';
+        item.formattedAmount = item.budget > 0 ? formatNumber(item.budget.toString()) : '';
       })
       
       setCategorySpendings(spendings)
@@ -194,7 +196,8 @@ export default function BudgetPage() {
             ...item, 
             isEditing: true,
             // Asegurarnos que formattedAmount esté correctamente inicializado
-            formattedAmount: item.budget === 0 ? '' : formatMoney(item.budget)
+            rawAmount: item.budget > 0 ? item.budget.toString() : '',
+            formattedAmount: item.budget > 0 ? formatNumber(item.budget.toString()) : ''
           }
         : item
     ))
@@ -318,7 +321,8 @@ export default function BudgetPage() {
           i.category === category ? { 
             ...i, 
             newAmount: i.budget, 
-            formattedAmount: i.budget > 0 ? formatMoney(i.budget) : '',
+            rawAmount: i.budget > 0 ? i.budget.toString() : '',
+            formattedAmount: i.budget > 0 ? formatNumber(i.budget.toString()) : '',
             isEditing: false 
           } : i
         ));
@@ -339,7 +343,8 @@ export default function BudgetPage() {
         i.category === category ? { 
           ...i, 
           newAmount: i.budget, 
-          formattedAmount: i.budget > 0 ? formatMoney(i.budget) : '',
+          rawAmount: i.budget > 0 ? i.budget.toString() : '',
+          formattedAmount: i.budget > 0 ? formatNumber(i.budget.toString()) : '',
           isEditing: false 
         } : i
       ));
@@ -371,6 +376,7 @@ export default function BudgetPage() {
       setNewBudget({ 
         category: unbudgetedCategories[0], 
         amount: 0,
+        rawAmount: '',
         formattedAmount: '' 
       })
     } else {
@@ -494,16 +500,21 @@ export default function BudgetPage() {
     }
   };
   
+  // Formatear número con separadores de miles
+  const formatNumber = (value: string): string => {
+    // Remover caracteres no numéricos excepto punto decimal
+    const numericValue = value.replace(/[^\d]/g, '');
+    // Formatear con separador de miles
+    return new Intl.NumberFormat('es-CL').format(
+      numericValue === '' ? 0 : parseInt(numericValue)
+    );
+  };
+
   // Limpiar el valor formateado para obtener solo números
   const cleanFormattedValue = (value: string): string => {
     if (!value) return '';
     return value.replace(/[^\d]/g, '');
-  };
-
-  // Esta es una función simple para dar formato con separador de miles
-  const formatMoney = (amount: number): string => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
+  };;
 
   // Función auxiliar para establecer la referencia del input
   const setInputRef = (el: HTMLInputElement | null, category: string) => {
