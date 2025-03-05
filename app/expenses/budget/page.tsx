@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { Save, ArrowLeft, PlusCircle, X, BarChart3, Edit2, Home, RefreshCw } from 'lucide-react'
+import { Save, ArrowLeft, PlusCircle, X, BarChart3, Home, RefreshCw } from 'lucide-react'
 
 // Improved type definitions for error handling
 interface SupabaseError {
@@ -71,13 +71,13 @@ export default function BudgetPage() {
   };
 
   // Limpiar el valor formateado para obtener solo números
-  const cleanFormattedValue = (value: string): string => {
+  /*const cleanFormattedValue = (value: string): string => {
     if (!value) return '';
     return value.replace(/[^\d]/g, '');
-  };
+  };*/
 
   // Clases adaptativas para texto según modo
-  const getTextColorClass = {
+  /*const getTextColorClass = {
     // Resumen
     presupuestoTotal: "text-indigo-700",
     gastoTotal: "text-gray-900",
@@ -90,7 +90,7 @@ export default function BudgetPage() {
     
     // Etiquetas
     label: "text-gray-800",
-  };
+  };*/
 
   // Improved error handling function with better type safety
   const handleSupabaseError = (error: unknown): string => {
