@@ -1,11 +1,10 @@
 // expenses/budget/page.tsx
-// expenses/budget/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { Save, ArrowLeft, PlusCircle, X, BarChart3, Edit2 } from 'lucide-react'
+import { Save, ArrowLeft, PlusCircle, X, BarChart3, Edit2, Home, RefreshCw } from 'lucide-react'
 
 // Improved type definitions for error handling
 interface SupabaseError {
@@ -29,13 +28,14 @@ interface CategorySpending {
   percentage: number
   isEditing?: boolean
   newAmount?: number
+  formattedAmount?: string // Para almacenar el monto con formato
 }
 
 export default function BudgetPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [categorySpendings, setCategorySpendings] = useState<CategorySpending[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [newBudget, setNewBudget] = useState<{category: string, amount: number} | null>(null)
+  const [newBudget, setNewBudget] = useState<{category: string, amount: number, formattedAmount: string} | null>(null)
   const inputRefs = useRef<{[key: string]: HTMLInputElement | null}>({})
   
   // Calcular totales para la fila de resumen
@@ -146,6 +146,7 @@ export default function BudgetPage() {
         const budget = budgetData?.find(b => b.category === category)?.amount || 0
         const spent = categoryMap.get(category) || 0
         const percentage = budget > 0 ? (spent / budget) * 100 : 0
+        const formattedAmount = budget > 0 ? formatNumber(budget) : ''
         
         spendings.push({
           category,
@@ -153,7 +154,8 @@ export default function BudgetPage() {
           budget,
           percentage,
           isEditing: false,
-          newAmount: budget
+          newAmount: budget,
+          formattedAmount
         })
       })
       
@@ -189,10 +191,22 @@ export default function BudgetPage() {
   }
 
   const handleBudgetChange = (category: string, value: string) => {
-    const amount = parseInt(value) || 0
+    // Limpiar el valor para obtener solo los números
+    const numericValue = cleanFormattedValue(value);
+    
+    // Convertir a número
+    const amount = numericValue === '' ? 0 : parseInt(numericValue);
+    
+    // Formatear para mostrar con separadores de miles
+    const formattedValue = numericValue === '' ? '' : formatNumber(numericValue);
+    
     setCategorySpendings(prev => prev.map(item => 
       item.category === category 
-        ? { ...item, newAmount: amount }
+        ? { 
+            ...item, 
+            newAmount: amount,
+            formattedAmount: formattedValue 
+          }
         : item
     ))
   }
@@ -334,7 +348,11 @@ export default function BudgetPage() {
     const unbudgetedCategories = availableCategories.filter(c => !budgetCategories.includes(c))
     
     if (unbudgetedCategories.length > 0) {
-      setNewBudget({ category: unbudgetedCategories[0], amount: 0 })
+      setNewBudget({ 
+        category: unbudgetedCategories[0], 
+        amount: 0,
+        formattedAmount: '' 
+      })
     } else {
       alert('Todas las categorías ya tienen presupuesto')
     }
@@ -427,6 +445,23 @@ export default function BudgetPage() {
       maximumFractionDigits: 0
     }).format(amount);
   };
+  
+  // Formatear número con separadores de miles
+  const formatNumber = (value: string | number): string => {
+    // Si es número, convertirlo a string
+    const stringValue = typeof value === 'number' ? value.toString() : value;
+    // Remover caracteres no numéricos
+    const numericValue = stringValue.replace(/[^\d]/g, '');
+    // Formatear con separador de miles
+    return new Intl.NumberFormat('es-CL').format(
+      numericValue === '' ? 0 : parseInt(numericValue)
+    );
+  };
+  
+  // Limpiar el valor formateado para obtener solo números
+  const cleanFormattedValue = (value: string): string => {
+    return value.replace(/[^\d]/g, '');
+  };
 
   // Función auxiliar para establecer la referencia del input
   const setInputRef = (el: HTMLInputElement | null, category: string) => {
@@ -447,67 +482,86 @@ export default function BudgetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 px-2 sm:py-6 sm:px-4">
+      <div className="container mx-auto max-w-6xl">
+        {/* Barra de navegación móvil */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
+          <div className="flex justify-around py-2">
+            <Link href="/" className="flex flex-col items-center px-3 py-2">
+              <Home className="w-6 h-6 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Inicio</span>
+            </Link>
+            <Link href="/expenses" className="flex flex-col items-center px-3 py-2">
+              <RefreshCw className="w-6 h-6 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Gastos</span>
+            </Link>
+            <Link href="/expenses/stats" className="flex flex-col items-center px-3 py-2">
+              <BarChart3 className="w-6 h-6 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Stats</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl sm:rounded-3xl shadow-xl overflow-hidden mb-16 sm:mb-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link 
                 href="/expenses" 
-                className="flex items-center justify-center w-10 h-10 bg-white/20 text-white rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/20 text-white rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
                 title="Volver a Gastos"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
-              <h1 className="text-xl font-bold text-white">Presupuestos</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-white">Presupuestos</h1>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1 sm:space-x-2">
               <Link 
                 href="/expenses/stats" 
-                className="inline-flex items-center px-4 py-2 bg-white/20 text-white text-sm font-medium rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+                className="sm:inline-flex items-center px-2 py-1 sm:px-4 sm:py-2 bg-white/20 text-white text-xs sm:text-sm font-medium rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors hidden"
               >
-                <BarChart3 className="w-4 h-4 mr-1" />
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                 <span className="hidden sm:inline">Estadísticas</span>
               </Link>
               <button
                 onClick={handleAddNew}
-                className="inline-flex items-center px-4 py-2 bg-white/20 text-white text-sm font-medium rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+                className="inline-flex items-center px-2 py-1 sm:px-4 sm:py-2 bg-white/20 text-white text-xs sm:text-sm font-medium rounded-full hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
               >
-                <PlusCircle className="w-4 h-4 mr-1" />
+                <PlusCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="sm:hidden">Nuevo</span>
                 <span className="hidden sm:inline">Nuevo Presupuesto</span>
               </button>
             </div>
           </div>
 
-          {/* Descripción/Instrucciones */}
-          <div className="p-4 bg-indigo-50 border-b border-indigo-100">
-            <p className="text-sm text-indigo-700">
+          {/* Descripción/Instrucciones - oculto en móvil para ahorrar espacio */}
+          <div className="hidden sm:block p-3 sm:p-4 bg-indigo-50 border-b border-indigo-100">
+            <p className="text-xs sm:text-sm text-indigo-700">
               Configura tus presupuestos mensuales para cada categoría. Haz clic en cualquier presupuesto para editarlo.
             </p>
           </div>
 
-          {/* Panel de nuevo presupuesto */}
+          {/* Panel de nuevo presupuesto - adaptado para móvil */}
           {newBudget && (
-            <div className="p-6 border-b border-gray-200 bg-white">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Agregar Nuevo Presupuesto</h2>
+            <div className="p-3 sm:p-6 border-b border-gray-200 bg-white">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-800">Agregar Presupuesto</h2>
                 <button 
                   onClick={() => setNewBudget(null)}
                   className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Categoría
                   </label>
                   <select
                     value={newBudget.category}
                     onChange={(e) => setNewBudget({...newBudget, category: e.target.value})}
-                    className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors"
+                    className="w-full px-2 py-2 sm:px-3 text-sm rounded-lg sm:rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors"
                   >
                     {availableCategories
                       .filter(c => !budgets.some(b => b.category === c))
@@ -520,12 +574,12 @@ export default function BudgetPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Monto Mensual
                   </label>
-                  <div className="relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-700 sm:text-sm">$</span>
+                  <div className="relative rounded-lg sm:rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-700 text-xs sm:text-sm">$</span>
                     </div>
                     <input
                       type="number"
@@ -536,7 +590,8 @@ export default function BudgetPage() {
                           e.target.value = '';
                         }
                       }}
-                      className="block w-full pl-8 pr-4 py-2 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors"
+                      className="block w-full pl-6 sm:pl-8 pr-2 sm:pr-4 py-2 rounded-lg sm:rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors text-sm"
+                      inputMode="numeric"
                       min="0"
                       placeholder="0"
                     />
@@ -545,30 +600,30 @@ export default function BudgetPage() {
                 <div className="flex items-end">
                   <button
                     onClick={handleSaveNewBudget}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                    className="w-full inline-flex items-center justify-center px-3 py-2 sm:px-4 border border-transparent rounded-lg sm:rounded-xl shadow-sm text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
                   >
-                    <Save className="w-5 h-5 mr-2" />
-                    Guardar Presupuesto
+                    <Save className="w-4 h-4 mr-1 sm:mr-2" />
+                    Guardar
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Total del mes */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Presupuesto Total</h3>
-                  <p className="text-2xl font-bold text-indigo-700 tabular-nums">{formatCurrency(totalBudget)}</p>
+          {/* Total del mes - Adaptado para móvil */}
+          <div className="p-3 sm:p-6 border-b border-gray-200">
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="flex sm:block justify-between items-center">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Presupuesto Total</h3>
+                  <p className="text-base sm:text-2xl font-bold text-indigo-700 tabular-nums">{formatCurrency(totalBudget)}</p>
+                </div>
+                <div className="flex sm:block justify-between items-center">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Gastado Total</h3>
+                  <p className="text-base sm:text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(totalSpent)}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Gastado Total</h3>
-                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(totalSpent)}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                     {totalBudget > 0 ? (
                       totalSpent <= totalBudget ? "Disponible" : "Excedido"
                     ) : "Estado"}
@@ -576,14 +631,14 @@ export default function BudgetPage() {
                   
                   {totalBudget > 0 ? (
                     <div>
-                      <p className={`text-2xl font-bold tabular-nums ${totalSpent <= totalBudget ? "text-green-600" : "text-red-600"}`}>
+                      <p className={`text-base sm:text-2xl font-bold tabular-nums ${totalSpent <= totalBudget ? "text-green-600" : "text-red-600"}`}>
                         {totalSpent <= totalBudget 
                           ? formatCurrency(totalBudget - totalSpent)
                           : formatCurrency(totalSpent - totalBudget)}
                       </p>
-                      <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                      <div className="mt-1 sm:mt-2 w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                         <div 
-                          className={`h-2 rounded-full ${
+                          className={`h-1.5 sm:h-2 rounded-full ${
                             totalPercentage > 100 ? 'bg-red-600' :
                             totalPercentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
                           }`}
@@ -592,23 +647,25 @@ export default function BudgetPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-lg text-gray-500">Sin presupuesto</p>
+                    <p className="text-sm sm:text-lg text-gray-500">Sin presupuesto</p>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Lista de presupuestos */}
-          <div className="overflow-hidden">
-            <div className="grid grid-cols-4 gap-x-4 p-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
+          {/* Lista de presupuestos - Rediseñada completamente para móvil */}
+          <div className="overflow-hidden pb-4 sm:pb-0">
+            {/* Encabezados - ocultos en móvil, visibles en desktop */}
+            <div className="hidden sm:grid grid-cols-4 gap-x-4 p-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
               <div className="col-span-1">Categoría</div>
               <div className="col-span-1">Presupuesto</div>
               <div className="col-span-1">Gastado</div>
               <div className="col-span-1">Progreso</div>
             </div>
 
-            <div className="divide-y divide-gray-200">
+            {/* Vista de escritorio */}
+            <div className="hidden sm:block divide-y divide-gray-200">
               {categorySpendings.map((item) => (
                 <div key={item.category} className={`grid grid-cols-4 gap-x-4 p-4 ${item.isEditing ? 'bg-indigo-50' : 'hover:bg-gray-50'} transition-colors`}>
                   {/* Categoría */}
@@ -625,13 +682,12 @@ export default function BudgetPage() {
                       </div>
                       <input
                         ref={(el) => setInputRef(el, item.category)}
-                        type="number"
-                        value={item.isEditing ? (item.newAmount === 0 ? '' : item.newAmount) : item.budget}
+                        type="text"
+                        value={item.isEditing ? item.formattedAmount : (item.budget === 0 ? '' : formatNumber(item.budget))}
                         onChange={(e) => handleBudgetChange(item.category, e.target.value)}
                         onFocus={(e) => {
                           handleBudgetFocus(item.category);
-                          if (item.budget === 0 || item.newAmount === 0) {
-                            e.target.value = '';
+                          if (item.budget === 0) {
                             handleBudgetChange(item.category, '');
                           }
                         }}
@@ -642,7 +698,7 @@ export default function BudgetPage() {
                             ? 'border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white' 
                             : 'border-transparent hover:border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
                         }`}
-                        min="0"
+                        inputMode="numeric"
                         placeholder="0"
                       />
                       {!item.isEditing && (
@@ -690,18 +746,111 @@ export default function BudgetPage() {
                 </div>
               ))}
             </div>
+
+            {/* Vista móvil - Completamente rediseñada con tarjetas */}
+            <div className="sm:hidden divide-y divide-gray-200">
+              {categorySpendings.map((item) => (
+                <div key={item.category} className={`p-3 ${item.isEditing ? 'bg-indigo-50' : ''}`}>
+                  {/* Encabezado de tarjeta: Categoría y estado */}
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-medium text-gray-900 flex items-center">
+                      <span className="mr-2 text-xl">{getCategoryEmoji(item.category)}</span>
+                      <span className="truncate text-sm">{formatCategoryName(item.category)}</span>
+                    </div>
+                    {item.budget > 0 && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        item.percentage > 100 ? 'bg-red-100 text-red-800' :
+                        item.percentage > 80 ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {Math.round(item.percentage)}%
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Presupuesto y gastado */}
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Presupuesto</div>
+                      <div className="relative rounded-lg shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                          <span className="text-gray-700 text-xs">$</span>
+                        </div>
+                        <input
+                          ref={(el) => setInputRef(el, item.category)}
+                          type="number"
+                          inputMode="numeric"
+                          value={item.isEditing ? (item.newAmount === 0 ? '' : item.newAmount) : item.budget}
+                          onChange={(e) => handleBudgetChange(item.category, e.target.value)}
+                          onFocus={(e) => {
+                            handleBudgetFocus(item.category);
+                            if (item.budget === 0 || item.newAmount === 0) {
+                              e.target.value = '';
+                              handleBudgetChange(item.category, '');
+                            }
+                          }}
+                          onBlur={() => handleBudgetBlur(item.category)}
+                          onKeyDown={(e) => handleKeyDown(e, item.category)}
+                          className={`block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 text-sm transition-colors ${
+                            item.isEditing 
+                              ? 'border-indigo-500 focus:ring-2 focus:ring-indigo-500 bg-white' 
+                              : 'border-gray-200 focus:ring-2 focus:ring-indigo-500'
+                          }`}
+                          min="0"
+                          placeholder="0"
+                        />
+                        {!item.isEditing && (
+                          <div className="absolute inset-y-0 right-2 flex items-center">
+                            <Edit2 className="h-3 w-3 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Gastado</div>
+                      <div className="py-1.5 px-2 rounded-lg border-2 border-gray-200 text-sm font-medium tabular-nums">
+                        {formatCurrency(item.spent)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Barra de progreso */}
+                  {item.budget > 0 && (
+                    <div className="mt-1">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className={`h-1.5 rounded-full ${
+                            item.percentage > 100 ? 'bg-red-600' :
+                            item.percentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
+                          }`}
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between mt-1 text-xs">
+                        <span className="text-gray-500">
+                          {item.percentage > 100 
+                            ? `${formatCurrency(item.spent - item.budget)} excedido` 
+                            : `${formatCurrency(item.budget - item.spent)} disponible`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
             
-            {/* Indicaciones ayuda */}
-            <div className="p-4 text-center text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
-              <p>Haz clic en cualquier monto para editar. Presiona Enter para guardar o Esc para cancelar.</p>
+            {/* Indicaciones ayuda - Adaptadas para móvil */}
+            <div className="p-3 sm:p-4 text-center text-xs sm:text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+              <p className="hidden sm:block">Haz clic en cualquier monto para editar. Presiona Enter para guardar o Esc para cancelar.</p>
+              <p className="sm:hidden">Toca cualquier monto para editar</p>
             </div>
           </div>
         </div>
         
-        {/* Consejos para presupuestos */}
-        <div className="mt-6 bg-white rounded-xl shadow-md p-5">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Consejos para presupuestos</h3>
-          <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
+        {/* Consejos para presupuestos - Adaptado para móvil */}
+        <div className="mt-4 mb-16 sm:mb-6 sm:mt-6 bg-white rounded-xl shadow-md p-3 sm:p-5 text-xs sm:text-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Consejos para presupuestos</h3>
+          <ul className="list-disc list-inside text-gray-600 space-y-1 sm:space-y-2 pl-1">
             <li>Establece presupuestos realistas basados en tus gastos anteriores.</li>
             <li>Revisa tus presupuestos regularmente y ajústalos según sea necesario.</li>
             <li>Prioriza las categorías esenciales como arriendo y cuentas.</li>
@@ -709,4 +858,6 @@ export default function BudgetPage() {
           </ul>
         </div>
       </div>
-    </div>)}
+    </div>
+  );
+}
