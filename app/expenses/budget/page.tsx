@@ -36,7 +36,12 @@ export default function BudgetPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [categorySpendings, setCategorySpendings] = useState<CategorySpending[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [newBudget, setNewBudget] = useState<{category: string, amount: number, formattedAmount: string} | null>(null)
+  const [newBudget, setNewBudget] = useState<{
+    category: string, 
+    amount: number, 
+    rawAmount: string,
+    formattedAmount: string
+  } | null>(null)
   const inputRefs = useRef<{[key: string]: HTMLInputElement | null}>({})
   
   // Calcular totales para la fila de resumen
@@ -54,6 +59,38 @@ export default function BudgetPage() {
     'Supermercado', 'Restaurant', 'Hobby', 'Cuidado personal', 'Suscripciones',
     'Carrete', 'Arriendo', 'Cuentas', 'Viajes', 'Traslados', 'Mascotas', 'Regalos', 'Otros'
   ]
+
+  // Formatear número con separadores de miles
+  const formatNumber = (value: string): string => {
+    // Remover caracteres no numéricos excepto punto decimal
+    const numericValue = value.replace(/[^\d]/g, '');
+    // Formatear con separador de miles
+    return new Intl.NumberFormat('es-CL').format(
+      numericValue === '' ? 0 : parseInt(numericValue)
+    );
+  };
+
+  // Limpiar el valor formateado para obtener solo números
+  const cleanFormattedValue = (value: string): string => {
+    if (!value) return '';
+    return value.replace(/[^\d]/g, '');
+  };
+
+  // Clases adaptativas para texto según modo
+  const getTextColorClass = {
+    // Resumen
+    presupuestoTotal: "text-indigo-700",
+    gastoTotal: "text-gray-900",
+    disponible: "text-green-600",
+    excedido: "text-red-600",
+    
+    // Inputs y valores
+    presupuestoTexto: "text-gray-900 font-bold",
+    gastoTexto: "text-gray-900 font-bold",
+    
+    // Etiquetas
+    label: "text-gray-800",
+  };
 
   // Improved error handling function with better type safety
   const handleSupabaseError = (error: unknown): string => {
@@ -147,7 +184,8 @@ export default function BudgetPage() {
         const budget = budgetData?.find(b => b.category === category)?.amount || 0
         const spent = categoryMap.get(category) || 0
         const percentage = budget > 0 ? (spent / budget) * 100 : 0
-        const formattedAmount = budget > 0 ? formatMoney(budget) : ''
+        const rawAmount = budget > 0 ? budget.toString() : ''
+        const formattedAmount = budget > 0 ? formatNumber(budget.toString()) : ''
         
         spendings.push({
           category,
@@ -156,6 +194,7 @@ export default function BudgetPage() {
           percentage,
           isEditing: false,
           newAmount: budget,
+          rawAmount,
           formattedAmount
         })
       })
@@ -204,21 +243,20 @@ export default function BudgetPage() {
   }
 
   const handleBudgetChange = (category: string, value: string) => {
-    // Limpiar el valor para obtener solo los números
-    const numericValue = cleanFormattedValue(value);
+    // Remover caracteres no numéricos
+    const numericValue = value.replace(/[^\d]/g, '');
     
-    // Convertir a número
+    // Valor numérico para cálculos
     const amount = numericValue === '' ? 0 : parseInt(numericValue);
     
-    // Formatear para mostrar con separadores de miles
-    const formattedValue = numericValue === '' ? '' : amount.toLocaleString('es-CL');
-    
+    // Actualizar el estado
     setCategorySpendings(prev => prev.map(item => 
       item.category === category 
         ? { 
             ...item, 
             newAmount: amount,
-            formattedAmount: formattedValue 
+            rawAmount: numericValue,
+            formattedAmount: numericValue === '' ? '' : formatNumber(numericValue)
           }
         : item
     ))
@@ -463,59 +501,6 @@ export default function BudgetPage() {
     return emojis[category] || '📊'
   }
 
-  // Formato de moneda
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-  
-  // Formatear número con separadores de miles de manera forzada
-  const formatNumber = (value: string | number): string => {
-    try {
-      // Si es número, convertirlo a string
-      const stringValue = typeof value === 'number' ? value.toString() : value;
-      // Remover caracteres no numéricos excepto punto decimal
-      const numericValue = stringValue.replace(/[^\d]/g, '');
-      // Formatear con separador de miles usando función nativa
-      const formattedValue = new Intl.NumberFormat().format(
-        numericValue === '' ? 0 : parseInt(numericValue)
-      );
-      
-      return formattedValue;
-    } catch (error) {
-      console.error('Error al formatear número:', error);
-      // En caso de error, al menos intentar dar formato manual básico
-      const numStr = String(value);
-      let result = '';
-      for (let i = 0; i < numStr.length; i++) {
-        result += numStr[i];
-        if ((numStr.length - i - 1) % 3 === 0 && i < numStr.length - 1) {
-          result += '.';
-        }
-      }
-      return result;
-    }
-  };
-  
-  // Formatear número con separadores de miles
-  const formatNumber = (value: string): string => {
-    // Remover caracteres no numéricos excepto punto decimal
-    const numericValue = value.replace(/[^\d]/g, '');
-    // Formatear con separador de miles
-    return new Intl.NumberFormat('es-CL').format(
-      numericValue === '' ? 0 : parseInt(numericValue)
-    );
-  };
-
-  // Limpiar el valor formateado para obtener solo números
-  const cleanFormattedValue = (value: string): string => {
-    if (!value) return '';
-    return value.replace(/[^\d]/g, '');
-  };;
-
   // Función auxiliar para establecer la referencia del input
   const setInputRef = (el: HTMLInputElement | null, category: string) => {
     if (inputRefs.current) {
@@ -630,24 +615,31 @@ export default function BudgetPage() {
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Monto Mensual
                   </label>
-                  <div className="relative rounded-lg sm:rounded-xl shadow-sm">
+                  <div className="relative rounded-xl shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-700 text-xs sm:text-sm">$</span>
+                      <span className="text-black text-xs sm:text-sm">$</span>
                     </div>
-                    <input
-                      type="number"
-                      value={newBudget.amount === 0 ? '' : newBudget.amount}
-                      onChange={(e) => setNewBudget({...newBudget, amount: e.target.value === '' ? 0 : parseInt(e.target.value)})}
-                      onFocus={(e) => {
-                        if (newBudget.amount === 0) {
-                          e.target.value = '';
-                        }
-                      }}
-                      className="block w-full pl-6 sm:pl-8 pr-2 sm:pr-4 py-2 rounded-lg sm:rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors text-sm"
-                      inputMode="numeric"
-                      min="0"
-                      placeholder="0"
-                    />
+                    <div className="flex items-center w-full">
+                      <input
+                        type="text"
+                        value={newBudget?.formattedAmount || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const numericValue = value.replace(/[^\d]/g, '');
+                          const amount = numericValue === '' ? 0 : parseInt(numericValue);
+                          
+                          setNewBudget({
+                            ...newBudget!, 
+                            amount: amount,
+                            rawAmount: numericValue,
+                            formattedAmount: numericValue === '' ? '' : formatNumber(numericValue)
+                          });
+                        }}
+                        className="block w-full pl-6 sm:pl-8 pr-2 sm:pr-4 py-2 rounded-lg sm:rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-colors text-sm font-bold text-black"
+                        inputMode="numeric"
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-end">
@@ -667,16 +659,20 @@ export default function BudgetPage() {
           <div className="p-3 sm:p-6 border-b border-gray-200">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="flex sm:block justify-between items-center">
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Presupuesto Total</h3>
-                  <p className="text-base sm:text-2xl font-bold text-indigo-700 tabular-nums">{formatCurrency(totalBudget)}</p>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-1">Presupuesto Total</h3>
+                  <p className="text-base sm:text-2xl font-bold text-black tabular-nums">
+                    <span>${formatNumber(totalBudget.toString())}</span>
+                  </p>
                 </div>
                 <div className="flex sm:block justify-between items-center">
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500">Gastado Total</h3>
-                  <p className="text-base sm:text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(totalSpent)}</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-800">Gastado Total</h3>
+                  <p className="text-base sm:text-2xl font-bold text-black tabular-nums">
+                    <span>${formatNumber(totalSpent.toString())}</span>
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-1">
                     {totalBudget > 0 ? (
                       totalSpent <= totalBudget ? "Disponible" : "Excedido"
                     ) : "Estado"}
@@ -684,10 +680,8 @@ export default function BudgetPage() {
                   
                   {totalBudget > 0 ? (
                     <div>
-                      <p className={`text-base sm:text-2xl font-bold tabular-nums ${totalSpent <= totalBudget ? "text-green-600" : "text-red-600"}`}>
-                        {totalSpent <= totalBudget 
-                          ? formatCurrency(totalBudget - totalSpent)
-                          : formatCurrency(totalSpent - totalBudget)}
+                      <p className={`text-base sm:text-2xl font-bold tabular-nums ${totalSpent <= totalBudget ? "text-green-700" : "text-red-700"}`}>
+                        <span>${formatNumber((totalSpent <= totalBudget ? (totalBudget - totalSpent) : (totalSpent - totalBudget)).toString())}</span>
                       </p>
                       <div className="mt-1 sm:mt-2 w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                         <div 
@@ -731,40 +725,40 @@ export default function BudgetPage() {
                   <div className="col-span-1 relative">
                     <div className="relative rounded-lg shadow-sm">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-700 sm:text-sm">$</span>
+                        <span className="text-black text-xs">$</span>
                       </div>
-                      <input
-                        ref={(el) => setInputRef(el, item.category)}
-                        type="text"
-                        value={item.budget === 0 ? '' : formatNumber(item.budget)}
-                        onChange={(e) => handleBudgetChange(item.category, e.target.value)}
-                        onFocus={() => {
-                          handleBudgetFocus(item.category);
-                          if (item.budget === 0) {
-                            handleBudgetChange(item.category, '');
-                          }
-                        }}
-                        onBlur={() => handleBudgetBlur(item.category)}
-                        onKeyDown={(e) => handleKeyDown(e, item.category)}
-                        className={`block w-full pl-8 pr-4 py-2 rounded-lg border-2 transition-colors text-sm font-medium text-gray-900 ${
-                          item.isEditing 
-                            ? 'border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white' 
-                            : 'border-transparent hover:border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-                        }`}
-                        inputMode="numeric"
-                        placeholder="0"
-                      />
-                      {!item.isEditing && (
-                        <div className="absolute inset-y-0 right-2 flex items-center">
-                          <Edit2 className="h-4 w-4 text-gray-400" />
-                        </div>
-                      )}
+                      <div className="flex items-center w-full">
+                        {/* Input visible solo cuando se está editando (oculto en modo visualización) */}
+                        {item.isEditing ? (
+                          <input
+                            ref={(el) => setInputRef(el, item.category)}
+                            type="text"
+                            value={item.formattedAmount || ''}
+                            onChange={(e) => handleBudgetChange(item.category, e.target.value)}
+                            onBlur={() => handleBudgetBlur(item.category)}
+                            onKeyDown={(e) => handleKeyDown(e, item.category)}
+                            className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-indigo-500 focus:ring-2 focus:ring-indigo-500 bg-white text-sm font-bold text-black"
+                            inputMode="numeric"
+                            placeholder="0"
+                          />
+                        ) : (
+                          /* Div para mostrar el valor formateado (visible en modo visualización) */
+                          <div 
+                            onClick={() => handleBudgetFocus(item.category)}
+                            className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-gray-200 text-sm font-bold text-black cursor-pointer"
+                          >
+                            {item.budget === 0 ? '' : formatNumber(item.budget.toString())}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
                   {/* Gastado */}
                   <div className="col-span-1 flex items-center">
-                    <span className="text-gray-900 font-medium tabular-nums">{formatCurrency(item.spent)}</span>
+                    <div className="py-1.5 px-2 rounded-lg border-2 border-gray-200 text-sm font-bold text-black tabular-nums w-full">
+                      <span>${formatNumber(item.spent.toString())}</span>
+                    </div>
                   </div>
                   
                   {/* Progreso */}
@@ -824,45 +818,41 @@ export default function BudgetPage() {
                   {/* Presupuesto y gastado */}
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Presupuesto</div>
+                      <div className="text-xs text-gray-800 font-medium mb-1">Presupuesto</div>
                       <div className="relative rounded-lg shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                          <span className="text-gray-700 text-xs">$</span>
+                          <span className="text-black text-xs">$</span>
                         </div>
-                        <input
-                          ref={(el) => setInputRef(el, item.category)}
-                          type="number"
-                          inputMode="numeric"
-                          value={item.isEditing ? (item.newAmount === 0 ? '' : item.newAmount) : item.budget}
-                          onChange={(e) => handleBudgetChange(item.category, e.target.value)}
-                          onFocus={(e) => {
-                            handleBudgetFocus(item.category);
-                            if (item.budget === 0 || item.newAmount === 0) {
-                              e.target.value = '';
-                              handleBudgetChange(item.category, '');
-                            }
-                          }}
-                          onBlur={() => handleBudgetBlur(item.category)}
-                          onKeyDown={(e) => handleKeyDown(e, item.category)}
-                          className={`block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 text-sm transition-colors ${
-                            item.isEditing 
-                              ? 'border-indigo-500 focus:ring-2 focus:ring-indigo-500 bg-white' 
-                              : 'border-gray-200 focus:ring-2 focus:ring-indigo-500'
-                          }`}
-                          min="0"
-                          placeholder="0"
-                        />
-                        {!item.isEditing && (
-                          <div className="absolute inset-y-0 right-2 flex items-center">
-                            <Edit2 className="h-3 w-3 text-gray-400" />
-                          </div>
-                        )}
+                        <div className="flex items-center w-full">
+                          {/* Input visible solo cuando se está editando (oculto en modo visualización) */}
+                          {item.isEditing ? (
+                            <input
+                              ref={(el) => setInputRef(el, item.category)}
+                              type="text"
+                              value={item.formattedAmount || ''}
+                              onChange={(e) => handleBudgetChange(item.category, e.target.value)}
+                              onBlur={() => handleBudgetBlur(item.category)}
+                              onKeyDown={(e) => handleKeyDown(e, item.category)}
+                              className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-indigo-500 focus:ring-2 focus:ring-indigo-500 bg-white text-sm font-bold text-black"
+                              inputMode="numeric"
+                              placeholder="0"
+                            />
+                          ) : (
+                            /* Div para mostrar el valor formateado (visible en modo visualización) */
+                            <div 
+                              onClick={() => handleBudgetFocus(item.category)}
+                              className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-gray-200 text-sm font-bold text-black cursor-pointer"
+                            >
+                              {item.budget === 0 ? '' : formatNumber(item.budget.toString())}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Gastado</div>
-                      <div className="py-1.5 px-2 rounded-lg border-2 border-gray-200 text-sm font-medium tabular-nums">
-                        {formatCurrency(item.spent)}
+                      <div className="text-xs text-gray-800 font-medium mb-1">Gastado</div>
+                      <div className="py-1.5 px-2 rounded-lg border-2 border-gray-200 text-sm font-bold text-black tabular-nums">
+                        <span>${formatNumber(item.spent.toString())}</span>
                       </div>
                     </div>
                   </div>
@@ -874,16 +864,16 @@ export default function BudgetPage() {
                         <div 
                           className={`h-1.5 rounded-full ${
                             item.percentage > 100 ? 'bg-red-600' :
-                            item.percentage > 80 ? 'bg-yellow-400' : 'bg-green-600'
+                            item.percentage > 80 ? 'bg-yellow-500' : 'bg-green-600'
                           }`}
                           style={{ width: `${Math.min(item.percentage, 100)}%` }}
                         ></div>
                       </div>
-                      <div className="flex justify-between mt-1 text-xs font-medium">
-                        <span className="text-gray-800">
+                      <div className="flex justify-between mt-1 text-xs font-bold">
+                        <span className="text-black">
                           {item.percentage > 100 
-                            ? <span dangerouslySetInnerHTML={{ __html: `${formatNumber(item.spent - item.budget)} excedido` }} /> 
-                            : <span dangerouslySetInnerHTML={{ __html: `${formatNumber(item.budget - item.spent)} disponible` }} />}
+                            ? <span>${formatNumber((item.spent - item.budget).toString())} excedido</span> 
+                            : <span>${formatNumber((item.budget - item.spent).toString())} disponible</span>}
                         </span>
                       </div>
                     </div>
