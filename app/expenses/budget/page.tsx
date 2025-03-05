@@ -146,7 +146,7 @@ export default function BudgetPage() {
         const budget = budgetData?.find(b => b.category === category)?.amount || 0
         const spent = categoryMap.get(category) || 0
         const percentage = budget > 0 ? (spent / budget) * 100 : 0
-        const formattedAmount = budget > 0 ? budget.toLocaleString('es-CL') : ''
+        const formattedAmount = budget > 0 ? formatMoney(budget) : ''
         
         spendings.push({
           category,
@@ -174,7 +174,7 @@ export default function BudgetPage() {
       
       // Asegurarnos de que los valores formateados estén correctamente inicializados
       spendings.forEach(item => {
-        item.formattedAmount = item.budget > 0 ? item.budget.toLocaleString('es-CL') : '';
+        item.formattedAmount = item.budget > 0 ? formatMoney(item.budget) : '';
       })
       
       setCategorySpendings(spendings)
@@ -194,7 +194,7 @@ export default function BudgetPage() {
             ...item, 
             isEditing: true,
             // Asegurarnos que formattedAmount esté correctamente inicializado
-            formattedAmount: item.budget === 0 ? '' : item.budget.toLocaleString('es-CL')
+            formattedAmount: item.budget === 0 ? '' : formatMoney(item.budget)
           }
         : item
     ))
@@ -318,7 +318,7 @@ export default function BudgetPage() {
           i.category === category ? { 
             ...i, 
             newAmount: i.budget, 
-            formattedAmount: i.budget > 0 ? i.budget.toLocaleString('es-CL') : '',
+            formattedAmount: i.budget > 0 ? formatMoney(i.budget) : '',
             isEditing: false 
           } : i
         ));
@@ -339,7 +339,7 @@ export default function BudgetPage() {
         i.category === category ? { 
           ...i, 
           newAmount: i.budget, 
-          formattedAmount: i.budget > 0 ? i.budget.toLocaleString('es-CL') : '',
+          formattedAmount: i.budget > 0 ? formatMoney(i.budget) : '',
           isEditing: false 
         } : i
       ));
@@ -474,14 +474,10 @@ export default function BudgetPage() {
       // Remover caracteres no numéricos excepto punto decimal
       const numericValue = stringValue.replace(/[^\d]/g, '');
       // Formatear con separador de miles usando función nativa
-      const formattedValue = new Intl.NumberFormat('es-CL', {
-        useGrouping: true,
-        maximumFractionDigits: 0
-      }).format(
+      const formattedValue = new Intl.NumberFormat().format(
         numericValue === '' ? 0 : parseInt(numericValue)
       );
       
-      console.log(`Formateo: ${value} -> ${formattedValue}`);
       return formattedValue;
     } catch (error) {
       console.error('Error al formatear número:', error);
@@ -500,7 +496,13 @@ export default function BudgetPage() {
   
   // Limpiar el valor formateado para obtener solo números
   const cleanFormattedValue = (value: string): string => {
+    if (!value) return '';
     return value.replace(/[^\d]/g, '');
+  };
+
+  // Esta es una función simple para dar formato con separador de miles
+  const formatMoney = (amount: number): string => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
   // Función auxiliar para establecer la referencia del input
@@ -743,7 +745,7 @@ export default function BudgetPage() {
                       />
                       {!item.isEditing && (
                         <div className="absolute inset-y-0 right-2 flex items-center">
-                          <Edit2 className="h-4 w-4 text-gray-400" />
+                          <Edit2 className="h-4 w-4 text-gray-800" />
                         </div>
                       )}
                     </div>
