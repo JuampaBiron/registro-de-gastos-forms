@@ -494,6 +494,26 @@ export default function BudgetPage() {
     }
   };
   
+  // Hook para detectar modo oscuro
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Detectar modo oscuro del sistema
+  useEffect(() => {
+    // Verificar preferencia del sistema
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkMode(darkModeMediaQuery.matches);
+
+    // Listener para cambios en tiempo real
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches);
+    };
+
+    darkModeMediaQuery.addEventListener('change', handleChange);
+    return () => {
+      darkModeMediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+  
   // Limpiar el valor formateado para obtener solo números
   const cleanFormattedValue = (value: string): string => {
     if (!value) return '';
@@ -745,7 +765,7 @@ export default function BudgetPage() {
                       />
                       {!item.isEditing && (
                         <div className="absolute inset-y-0 right-2 flex items-center">
-                          <Edit2 className="h-4 w-4 text-gray-800" />
+                          <Edit2 className="h-4 w-4 text-gray-400" />
                         </div>
                       )}
                     </div>
