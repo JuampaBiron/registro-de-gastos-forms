@@ -172,6 +172,11 @@ export default function BudgetPage() {
         return b.spent - a.spent
       })
       
+      // Asegurarnos de que los valores formateados estén correctamente inicializados
+      spendings.forEach(item => {
+        item.formattedAmount = item.budget > 0 ? formatNumber(item.budget) : '';
+      })
+      
       setCategorySpendings(spendings)
     }
     
@@ -185,7 +190,12 @@ export default function BudgetPage() {
   const handleBudgetFocus = (category: string) => {
     setCategorySpendings(prev => prev.map(item => 
       item.category === category 
-        ? { ...item, isEditing: true }
+        ? { 
+            ...item, 
+            isEditing: true,
+            // Asegurarnos que formattedAmount esté correctamente inicializado
+            formattedAmount: item.budget === 0 ? '' : formatNumber(item.budget)
+          }
         : item
     ))
   }
@@ -303,9 +313,14 @@ export default function BudgetPage() {
       if (!errorOccurred) {
         await fetchBudgets();
       } else {
-        // En caso de error, restaurar el valor anterior
+        // En caso de error, restaurar el valor anterior y formatear correctamente
         setCategorySpendings(prev => prev.map(i => 
-          i.category === category ? { ...i, newAmount: i.budget, isEditing: false } : i
+          i.category === category ? { 
+            ...i, 
+            newAmount: i.budget, 
+            formattedAmount: i.budget > 0 ? formatNumber(i.budget) : '',
+            isEditing: false 
+          } : i
         ));
       }
     } catch (error) {
@@ -319,9 +334,14 @@ export default function BudgetPage() {
       
       alert('Error inesperado al guardar el presupuesto. Por favor, inténtalo de nuevo.');
       
-      // Restaurar el valor anterior
+      // Restaurar el valor anterior y formatear correctamente
       setCategorySpendings(prev => prev.map(i => 
-        i.category === category ? { ...i, newAmount: i.budget, isEditing: false } : i
+        i.category === category ? { 
+          ...i, 
+          newAmount: i.budget, 
+          formattedAmount: i.budget > 0 ? formatNumber(i.budget) : '',
+          isEditing: false 
+        } : i
       ));
     }
   }
@@ -683,7 +703,9 @@ export default function BudgetPage() {
                       <input
                         ref={(el) => setInputRef(el, item.category)}
                         type="text"
-                        value={item.isEditing ? item.formattedAmount : (item.budget === 0 ? '' : formatNumber(item.budget))}
+                        value={item.isEditing ? 
+                          item.formattedAmount || '' : 
+                          (item.budget === 0 ? '' : formatNumber(item.budget))}
                         onChange={(e) => handleBudgetChange(item.category, e.target.value)}
                         onFocus={() => {
                           handleBudgetFocus(item.category);
@@ -693,7 +715,7 @@ export default function BudgetPage() {
                         }}
                         onBlur={() => handleBudgetBlur(item.category)}
                         onKeyDown={(e) => handleKeyDown(e, item.category)}
-                        className={`block w-full pl-8 pr-4 py-2 rounded-lg border-2 transition-colors ${
+                        className={`block w-full pl-8 pr-4 py-2 rounded-lg border-2 transition-colors text-sm font-medium text-gray-900 ${
                           item.isEditing 
                             ? 'border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white' 
                             : 'border-transparent hover:border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
@@ -826,8 +848,8 @@ export default function BudgetPage() {
                           style={{ width: `${Math.min(item.percentage, 100)}%` }}
                         ></div>
                       </div>
-                      <div className="flex justify-between mt-1 text-xs">
-                        <span className="text-gray-500">
+                      <div className="flex justify-between mt-1 text-xs font-medium">
+                        <span className="text-gray-800">
                           {item.percentage > 100 
                             ? `${formatCurrency(item.spent - item.budget)} excedido` 
                             : `${formatCurrency(item.budget - item.spent)} disponible`}
