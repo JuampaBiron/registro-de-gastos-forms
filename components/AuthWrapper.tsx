@@ -66,7 +66,7 @@ export default function AuthWrapper() {
       } else {
         setUser(user);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error inesperado:', error);
       setAuthError('Ha ocurrido un error inesperado');
     } finally {

@@ -150,12 +150,13 @@ export default function Auth() {
       if (error) throw error;
       
       // No necesitamos setMessage aquí ya que el usuario será redirigido a Google
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessageType('error');
-      setMessage(error.message || 'Error al iniciar sesión con Google');
-      console.error('Error al iniciar sesión con Google:', error);
-    } finally {
-      setGoogleLoading(false);
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage('Error al iniciar sesión con Google');
+      }
     }
   };
 

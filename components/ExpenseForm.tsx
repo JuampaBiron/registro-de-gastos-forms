@@ -165,9 +165,10 @@ export default function ExpenseForm() {
         setMonthlySpending(spendingMap);
       }
   // Corrección en la función fetchBudgets
-  } catch (error: any) { // Especificar tipo como 'any' o usar un tipado más específico
+  } catch (error: unknown) { // Especificar tipo como 'any' o usar un tipado más específico
     console.error('Error en fetchBudgets:', error);
-    if (error.code === 'refresh_token_not_found') {
+    if (typeof error === 'object' && error !== null && 'code' in error && 
+      error.code === 'refresh_token_not_found') {
       await handleLogout();
     }
   }
