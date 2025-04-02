@@ -81,53 +81,96 @@ export default function ExpenseForm() {
     // El valor formateado se actualizará mediante el useEffect
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      
+      // Redirigir a la página de inicio de sesión
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Intentar redirigir a la página de inicio de sesión de todos modos
+      window.location.href = '/login';
+    }
+  };
+
   const fetchBudgets = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return;
-    
-    // Cargar presupuestos
-    const { data: budgetData, error: budgetError } = await supabase
-      .from('budgets')
-      .select('*')
-      .eq('user_email', user.email);
-    
-    if (budgetError) {
-      console.error('Error al cargar presupuestos:', budgetError);
-    } else if (budgetData) {
-      const budgetMap: { [key: string]: number } = {};
-      budgetData.forEach((budget: Budget) => {
-        budgetMap[budget.category] = budget.amount;
-      });
-      setBudgets(budgetMap);
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error al obtener usuario:', userError);
+        // Si el error es de token, intentamos hacer logout para limpiar la sesión
+        if (userError.code === 'refresh_token_not_found') {
+          await handleLogout();
+          return;
+        }
+      }
+      
+      if (!user) return;
+      
+      // Cargar presupuestos
+      const { data: budgetData, error: budgetError } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('user_email', user.email);
+      
+      if (budgetError) {
+        console.error('Error al cargar presupuestos:', budgetError);
+      } else if (budgetData) {
+        const budgetMap: { [key: string]: number } = {};
+        budgetData.forEach((budget: Budget) => {
+          budgetMap[budget.category] = budget.amount;
+        });
+        setBudgets(budgetMap);
+      }
+      
+      // Usar la fecha seleccionada en el form para determinar el mes
+      // formData.date está en formato YYYY-MM-DD (ej: 2025-04-01)
+      console.log("Fecha seleccionada:", formData.date);
+      
+      // Extraer año y mes directamente del string para evitar problemas de interpretación
+      const [selectedYear, selectedMonth] = formData.date.split('-').map(part => parseInt(part));
+      console.log("Año seleccionado:", selectedYear, "Mes seleccionado:", selectedMonth);
+      
+      // Crear fechas para el primer y último día del mes seleccionado
+      const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
+      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0);
+      
+      // Asegurarse de que las fechas están en formato ISO con la hora fija a mediodía UTC
+      // para evitar problemas de zona horaria
+      const firstDayISO = `${firstDayOfMonth.getFullYear()}-${String(firstDayOfMonth.getMonth() + 1).padStart(2, '0')}-${String(firstDayOfMonth.getDate()).padStart(2, '0')}T12:00:00.000Z`;
+      const lastDayISO = `${lastDayOfMonth.getFullYear()}-${String(lastDayOfMonth.getMonth() + 1).padStart(2, '0')}-${String(lastDayOfMonth.getDate()).padStart(2, '0')}T12:00:00.000Z`;
+      
+      // Cargar gastos del mes seleccionado usando las fechas ISO
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_email', user.email)
+        .gte('created_at', firstDayISO)
+        .lte('created_at', lastDayISO);
+      
+      if (expenseError) {
+        console.error('Error al cargar gastos:', expenseError);
+        // Si el error es de autenticación, intentar logout
+        if (expenseError.code === 'refresh_token_not_found') {
+          await handleLogout();
+        }
+      } else if (expenseData) {
+        const spendingMap: { [key: string]: number } = {};
+        expenseData.forEach((expense) => {
+          const current = spendingMap[expense.category] || 0;
+          spendingMap[expense.category] = current + expense.amount;
+        });
+        setMonthlySpending(spendingMap);
+      }
+  // Corrección en la función fetchBudgets
+  } catch (error: any) { // Especificar tipo como 'any' o usar un tipado más específico
+    console.error('Error en fetchBudgets:', error);
+    if (error.code === 'refresh_token_not_found') {
+      await handleLogout();
     }
-    
-    // Usar la fecha seleccionada en el form para determinar el mes
-    const selectedDate = new Date(formData.date);
-    const selectedYear = selectedDate.getFullYear();
-    const selectedMonth = selectedDate.getMonth() + 1;
-    
-    // Cargar gastos del mes seleccionado
-    const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString();
-    const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString();
-    
-    const { data: expenseData, error: expenseError } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('user_email', user.email)
-      .gte('created_at', firstDayOfMonth)
-      .lte('created_at', lastDayOfMonth);
-    
-    if (expenseError) {
-      console.error('Error al cargar gastos:', expenseError);
-    } else if (expenseData) {
-      const spendingMap: { [key: string]: number } = {};
-      expenseData.forEach((expense) => {
-        const current = spendingMap[expense.category] || 0;
-        spendingMap[expense.category] = current + expense.amount;
-      });
-      setMonthlySpending(spendingMap);
-    }
+  }
   };
 
   useEffect(() => {
@@ -140,7 +183,15 @@ export default function ExpenseForm() {
     setIsSubmitting(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error al obtener usuario:', userError);
+        if (userError.code === 'refresh_token_not_found') {
+          await handleLogout();
+          return;
+        }
+      }
       
       if (!user?.email) {
         setMessage('Por favor inicia sesión para registrar gastos');
@@ -194,10 +245,6 @@ export default function ExpenseForm() {
         setMessage('');
       }, 3000);
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
   };
 
   const getBudgetProgress = (category: string): BudgetProgress | null => {
@@ -259,7 +306,11 @@ export default function ExpenseForm() {
 
   // Obtener el nombre del mes seleccionado
   const getMonthName = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // dateStr está en formato YYYY-MM-DD
+    const [year, month] = dateStr.split('-').map(part => parseInt(part));
+    
+    // Crear fecha manualmente para evitar problemas de interpretación
+    const date = new Date(year, month - 1, 1);
     return date.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
   };
 
