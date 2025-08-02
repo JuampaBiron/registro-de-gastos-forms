@@ -278,13 +278,14 @@ export default function ExpenseForm() {
   // Función para obtener el emoji adecuado para cada categoría
   const getCategoryEmoji = (category: string) => {
     const emojiMap: { [key: string]: string } = {
+      'Casa': '🏠',
       'Supermercado': '🛒',
       'Restaurant': '🍽️',
       'Hobby': '🎨',
       'Cuidado personal': '💅',
       'Suscripciones': '📱',
       'Carrete': '🎉',
-      'Arriendo': '🏠',
+      'Arriendo': '🏢',
       'Cuentas': '📋',
       'Viajes': '✈️',
       'Traslados': '🚗',
@@ -362,6 +363,7 @@ export default function ExpenseForm() {
                   required
                 >
                   <option value="">Selecciona una categoría</option>
+                  <option value="Casa">🏠 Casa</option>
                   <option value="Supermercado">🛒 Supermercado</option>
                   <option value="Restaurant">🍽️ Restaurant</option>
                   <option value="Hobby">🎨 Hobby</option>

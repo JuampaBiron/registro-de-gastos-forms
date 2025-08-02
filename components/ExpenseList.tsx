@@ -179,13 +179,14 @@ export default function ExpenseList() {
   // Get emoji for category
   const getCategoryEmoji = (category: string) => {
     const emojiMap: { [key: string]: string } = {
+      'Casa': '🏠',
       'Supermercado': '🛒',
       'Restaurant': '🍽️',
       'Hobby': '🎨',
       'Cuidado personal': '💅',
       'Suscripciones': '📱',
       'Carrete': '🎉',
-      'Arriendo': '🏠',
+      'Arriendo': '🏢',
       'Cuentas': '📋',
       'Viajes': '✈️',
       'Traslados': '🚗',

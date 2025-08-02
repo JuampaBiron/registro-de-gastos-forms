@@ -484,13 +484,14 @@ export default function BudgetPage() {
 
   const getCategoryEmoji = (category: string) => {
     const emojis: {[key: string]: string} = {
+      'Casa': '🏠',
       'Supermercado': '🛒',
       'Restaurant': '🍽️',
       'Hobby': '🎨',
       'Cuidado personal': '💅',
       'Suscripciones': '📱',
       'Carrete': '🎉',
-      'Arriendo': '🏠',
+      'Arriendo': '🏢',
       'Cuentas': '📋',
       'Viajes': '✈️',
       'Traslados': '🚗',
