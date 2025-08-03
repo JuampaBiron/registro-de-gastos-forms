@@ -6,13 +6,16 @@ import { createBrowserClient } from '@supabase/ssr';
 import { LogOut, TrendingUp, Wallet, CreditCard, ArrowRight, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
-interface Budget {
-  id: number;
-  category: string;
-  amount: number;
-  created_at: string;
-  user_email: string;
-}
+// Importar nuestras utilidades y constantes
+import { getCategoryEmoji, CATEGORIES } from '@/constants/categories';
+import { 
+  formatCurrency, 
+  formatNumber, 
+  formatDateForInput, 
+  getMonthName, 
+  handleSupabaseError 
+} from '@/lib/utils';
+import type { Budget } from '@/lib/types';
 
 interface BudgetProgress {
   percentage: number;
@@ -28,7 +31,7 @@ export default function ExpenseForm() {
     category: '',
     observation: '',
     type: 'Individual',
-    date: formatDate(new Date()) // Fecha actual en formato YYYY-MM-DD
+    date: formatDateForInput(new Date()) // Fecha actual en formato YYYY-MM-DD
   });
   const [formattedAmount, setFormattedAmount] = useState('');
   const [message, setMessage] = useState('');
@@ -40,24 +43,6 @@ export default function ExpenseForm() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-
-  // Función para formatear fecha en YYYY-MM-DD para el input date
-  function formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  // Función para formatear números con separador de miles
-  const formatNumber = (value: string): string => {
-    // Remover caracteres no numéricos excepto punto decimal
-    const numericValue = value.replace(/[^\d]/g, '');
-    // Formatear con separador de miles
-    return new Intl.NumberFormat('es-CL').format(
-      numericValue === '' ? 0 : parseInt(numericValue)
-    );
-  };
 
   // Efecto para actualizar el monto formateado cuando cambia formData.amount
   useEffect(() => {
@@ -117,112 +102,84 @@ export default function ExpenseForm() {
       
       if (budgetError) {
         console.error('Error al cargar presupuestos:', budgetError);
-      } else if (budgetData) {
-        const budgetMap: { [key: string]: number } = {};
-        budgetData.forEach((budget: Budget) => {
-          budgetMap[budget.category] = budget.amount;
-        });
-        setBudgets(budgetMap);
+        return;
       }
-      
-      // Usar la fecha seleccionada en el form para determinar el mes
-      // formData.date está en formato YYYY-MM-DD (ej: 2025-04-01)
-      console.log("Fecha seleccionada:", formData.date);
-      
-      // Extraer año y mes directamente del string para evitar problemas de interpretación
-      const [selectedYear, selectedMonth] = formData.date.split('-').map(part => parseInt(part));
-      console.log("Año seleccionado:", selectedYear, "Mes seleccionado:", selectedMonth);
-      
-      // Crear fechas para el primer y último día del mes seleccionado
-      const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
-      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0);
-      
-      // Asegurarse de que las fechas están en formato ISO con la hora fija a mediodía UTC
-      // para evitar problemas de zona horaria
-      const firstDayISO = `${firstDayOfMonth.getFullYear()}-${String(firstDayOfMonth.getMonth() + 1).padStart(2, '0')}-${String(firstDayOfMonth.getDate()).padStart(2, '0')}T12:00:00.000Z`;
-      const lastDayISO = `${lastDayOfMonth.getFullYear()}-${String(lastDayOfMonth.getMonth() + 1).padStart(2, '0')}-${String(lastDayOfMonth.getDate()).padStart(2, '0')}T12:00:00.000Z`;
-      
-      // Cargar gastos del mes seleccionado usando las fechas ISO
+
+      const budgetMap: { [key: string]: number } = {};
+      budgetData?.forEach(budget => {
+        budgetMap[budget.category] = budget.amount;
+      });
+      setBudgets(budgetMap);
+
+      // Cargar gastos del mes actual para calcular progreso
+      const currentDate = new Date(formData.date);
+      const year = currentDate.getFullYear();
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+      const startOfMonth = `${year}-${month}-01`;
+      const endOfMonth = `${year}-${month}-31`;
+
       const { data: expenseData, error: expenseError } = await supabase
         .from('expenses')
-        .select('*')
+        .select('category, amount')
         .eq('user_email', user.email)
-        .gte('created_at', firstDayISO)
-        .lte('created_at', lastDayISO);
-      
+        .gte('created_at', startOfMonth)
+        .lte('created_at', endOfMonth);
+
       if (expenseError) {
         console.error('Error al cargar gastos:', expenseError);
-        // Si el error es de autenticación, intentar logout
-        if (expenseError.code === 'refresh_token_not_found') {
-          await handleLogout();
-        }
-      } else if (expenseData) {
-        const spendingMap: { [key: string]: number } = {};
-        expenseData.forEach((expense) => {
-          const current = spendingMap[expense.category] || 0;
-          spendingMap[expense.category] = current + expense.amount;
-        });
-        setMonthlySpending(spendingMap);
+        return;
       }
-  // Corrección en la función fetchBudgets
-  } catch (error: unknown) { // Especificar tipo como 'any' o usar un tipado más específico
-    console.error('Error en fetchBudgets:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && 
-      error.code === 'refresh_token_not_found') {
-      await handleLogout();
+
+      const spendingMap: { [key: string]: number } = {};
+      expenseData?.forEach(expense => {
+        spendingMap[expense.category] = (spendingMap[expense.category] || 0) + expense.amount;
+      });
+      setMonthlySpending(spendingMap);
+
+    } catch (error) {
+      console.error('Error inesperado al cargar presupuestos:', error);
     }
-  }
   };
 
   useEffect(() => {
     fetchBudgets();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.date]); // Actualizar cuando cambie la fecha seleccionada
+  }, [formData.date]); // Recargar cuando cambie la fecha
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (userError) {
-        console.error('Error al obtener usuario:', userError);
-        if (userError.code === 'refresh_token_not_found') {
-          await handleLogout();
-          return;
-        }
-      }
-      
-      if (!user?.email) {
-        setMessage('Por favor inicia sesión para registrar gastos');
-        setIsSubmitting(false);
+      if (!user) {
+        setMessage('Error: Usuario no autenticado');
         return;
       }
-  
-      // Solución para asegurar la fecha correcta
-      // 1. Obtener las partes de la fecha seleccionada (YYYY-MM-DD)
-      const [year, month, day] = formData.date.split('-').map(num => parseInt(num));
-      
-      // 2. Crear un string de fecha ISO con la hora forzada a mediodía UTC
-      // Esto previene completamente el cambio de día por zona horaria
-      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T12:00:00.000Z`;
-      
+
+      // Preparar datos para insertar
+      const expenseData = {
+        amount: parseInt(formData.amount),
+        category: formData.category,
+        observation: formData.observation,
+        type: formData.type,
+        user_email: user.email,
+        created_at: formData.date + 'T00:00:00'
+      };
+
+      // Insertar gasto
       const { error } = await supabase
         .from('expenses')
-        .insert([
-          {
-            amount: Number(formData.amount),
-            category: formData.category,
-            observation: formData.observation,
-            user_email: user.email,
-            type: formData.type,
-            created_at: dateString // Usar string ISO con hora fija
-          }
-        ]);
-  
-      if (error) throw error;
-  
+        .insert(expenseData);
+
+      if (error) {
+        console.error('Error al registrar gasto:', error);
+        const errorMessage = handleSupabaseError(error);
+        setMessage(errorMessage);
+        return;
+      }
+
       setMessage('¡Gasto registrado exitosamente!');
       setFormData({ 
         amount: '', 
@@ -275,47 +232,6 @@ export default function ExpenseForm() {
   // Obtener el progreso del presupuesto para la categoría seleccionada
   const budgetProgress = formData.category ? getBudgetProgress(formData.category) : null;
 
-  // Función para obtener el emoji adecuado para cada categoría
-  const getCategoryEmoji = (category: string) => {
-    const emojiMap: { [key: string]: string } = {
-      'Casa': '🏠',
-      'Supermercado': '🛒',
-      'Restaurant': '🍽️',
-      'Hobby': '🎨',
-      'Cuidado personal': '💅',
-      'Suscripciones': '📱',
-      'Carrete': '🎉',
-      'Arriendo': '🏢',
-      'Cuentas': '📋',
-      'Viajes': '✈️',
-      'Traslados': '🚗',
-      'Mascotas': '🐾',
-      'Regalos': '🎁',
-      'Otros': '📦'
-    };
-    
-    return emojiMap[category] || '';
-  };
-
-  // Función para formatear montos en pesos chilenos
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  // Obtener el nombre del mes seleccionado
-  const getMonthName = (dateStr: string) => {
-    // dateStr está en formato YYYY-MM-DD
-    const [year, month] = dateStr.split('-').map(part => parseInt(part));
-    
-    // Crear fecha manualmente para evitar problemas de interpretación
-    const date = new Date(year, month - 1, 1);
-    return date.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex flex-col justify-center">
       <div className="relative sm:max-w-xl sm:mx-auto w-full px-4">
@@ -353,8 +269,8 @@ export default function ExpenseForm() {
 
               {/* Categoría con diseño mejorado */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center">
-                  <CreditCard className="w-4 h-4 mr-1" /> Categoría
+                <label className="text-sm font-medium text-gray-700 block">
+                  Categoría
                 </label>
                 <select
                   value={formData.category}
@@ -363,20 +279,11 @@ export default function ExpenseForm() {
                   required
                 >
                   <option value="">Selecciona una categoría</option>
-                  <option value="Casa">🏠 Casa</option>
-                  <option value="Supermercado">🛒 Supermercado</option>
-                  <option value="Restaurant">🍽️ Restaurant</option>
-                  <option value="Hobby">🎨 Hobby</option>
-                  <option value="Cuidado personal">💅 Cuidado personal</option>
-                  <option value="Suscripciones">📱 Suscripciones</option>
-                  <option value="Carrete">🎉 Carrete</option>
-                  <option value="Arriendo">🏠 Arriendo</option>
-                  <option value="Cuentas">📋 Cuentas</option>
-                  <option value="Viajes">✈️ Viajes</option>
-                  <option value="Traslados">🚗 Traslados</option>
-                  <option value="Mascotas">🐾 Mascotas</option>
-                  <option value="Regalos">🎁 Regalos</option>
-                  <option value="Otros">📦 Otros</option>
+                  {CATEGORIES.map(category => (
+                    <option key={category} value={category}>
+                      {getCategoryEmoji(category)} {category}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -516,31 +423,51 @@ export default function ExpenseForm() {
               <div 
                 className={`mt-6 p-4 rounded-xl shadow-sm border-l-4 transition-all duration-300 ease-in-out ${
                   message.includes('Error') 
-                    ? 'bg-red-50 text-red-700 border-red-500' 
-                    : 'bg-green-50 text-green-700 border-green-500'
+                    ? 'bg-red-50 border-red-400 text-red-700' 
+                    : 'bg-green-50 border-green-400 text-green-700'
                 }`}
               >
-                {message}
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    {message.includes('Error') ? (
+                      <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">{message}</p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Botones adicionales con diseño mejorado */}
-            <div className="mt-8 space-y-3">
-              <Link href="/expenses" className="block">
-                <button className="w-full py-3 px-4 rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center">
-                  Ver mis gastos <ArrowRight className="ml-2 w-4 h-4" />
-                </button>
-              </Link>
-              
-              <Link href="/expenses/budget" className="block">
-                <button className="w-full py-3 px-4 rounded-xl shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center">
-                  Administrar Presupuestos <ArrowRight className="ml-2 w-4 h-4" />
-                </button>
-              </Link>
+            {/* Enlaces de navegación */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex justify-center space-x-4">
+                <Link 
+                  href="/expenses" 
+                  className="inline-flex items-center px-4 py-2 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Ver Gastos
+                </Link>
+                <Link 
+                  href="/expenses/budget" 
+                  className="inline-flex items-center px-4 py-2 border border-indigo-300 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Presupuestos
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
