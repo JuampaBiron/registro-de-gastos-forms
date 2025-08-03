@@ -26,7 +26,6 @@ export default function ExpenseList() {
   const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0')
   const defaultYearMonth = `${currentYear}-${currentMonth}`
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [initialLoading, setInitialLoading] = useState(true)
   const [selectedYearMonth, setSelectedYearMonth] = useState(defaultYearMonth)
   const [availableYearMonths, setAvailableYearMonths] = useState<YearMonth[]>([])
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -43,7 +42,6 @@ export default function ExpenseList() {
 
   const fetchExpenses = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-
     if (user) {
       const { data, error } = await supabase
         .from('expenses')
@@ -92,7 +90,6 @@ export default function ExpenseList() {
         }
       }
     }
-    setInitialLoading(false) 
   }
 
   // Aplicar filtros
