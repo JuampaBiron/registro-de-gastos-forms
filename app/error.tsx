@@ -8,6 +8,9 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  // Log del error para debugging
+  console.error('Error en la aplicación:', error)
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center">
@@ -17,9 +20,12 @@ export default function Error({
           </svg>
         </div>
         <h2 className="text-xl font-bold mb-4">¡Ups! Algo salió mal</h2>
-        <p className="text-gray-600 mb-6">
-          Ha ocurrido un error inesperado. Intenta recargar la página.
-        </p>
+        <p className="text-gray-600 mb-2">Ha ocurrido un error inesperado.</p>
+        {process.env.NODE_ENV === 'development' && (
+          <p className="text-xs text-gray-500 mb-4">
+            {error.message}
+          </p>
+        )}
         <button 
           onClick={reset}
           className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"

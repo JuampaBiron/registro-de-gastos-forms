@@ -125,17 +125,44 @@ export default function ExpenseStats() {
     fetchExpenses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (selectedMonth && expenses.length > 0) {
-      calculateDailyExpenses(expenses, selectedMonth)
-    }
-  }, [selectedMonth, expenses])
+useEffect(() => {
+  // Mover la función dentro del useEffect
+  const calculateDailyExpenses = (expenseData: Expense[], monthKey: string) => {
+    const dailyMap = new Map<number, number>()
+    
+    const [year, month] = monthKey.split('-').map(Number)
+    const monthExpenses = expenseData.filter(expense => {
+      const date = fixDateTimezone(expense.created_at)
+      return date.getFullYear() === year && date.getMonth() + 1 === month
+    })
 
-  // Nombres de meses para referencia
-  /*const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ]*/;
+    const daysInMonth = new Date(year, month, 0).getDate()
+    for (let day = 1; day <= daysInMonth; day++) {
+      dailyMap.set(day, 0)
+    }
+
+    monthExpenses.forEach(expense => {
+      const date = fixDateTimezone(expense.created_at)
+      const day = date.getDate()
+      const current = dailyMap.get(day) || 0
+      dailyMap.set(day, current + expense.amount)
+    })
+
+    const dailyStats = Array.from(dailyMap.entries())
+      .map(([day, total]) => ({
+        day,
+        total,
+        segment: day <= 10 ? 'Inicio de mes' : day <= 20 ? 'Mitad de mes' : 'Fin de mes'
+      }))
+      .sort((a, b) => a.day - b.day)
+
+    setDailyExpenses(dailyStats)
+  }
+
+  if (selectedMonth && expenses.length > 0) {
+    calculateDailyExpenses(expenses, selectedMonth)
+  }
+}, [selectedMonth, expenses]);
 
   // Función mejorada para evitar problemas de zona horaria
   const fixDateTimezone = (dateStr: string): Date => {
