@@ -70,27 +70,6 @@ export default function BudgetPage() {
     );
   };
 
-  // Limpiar el valor formateado para obtener solo números
-  /*const cleanFormattedValue = (value: string): string => {
-    if (!value) return '';
-    return value.replace(/[^\d]/g, '');
-  };*/
-
-  // Clases adaptativas para texto según modo
-  /*const getTextColorClass = {
-    // Resumen
-    presupuestoTotal: "text-indigo-700",
-    gastoTotal: "text-gray-900",
-    disponible: "text-green-600",
-    excedido: "text-red-600",
-    
-    // Inputs y valores
-    presupuestoTexto: "text-gray-900 font-bold",
-    gastoTexto: "text-gray-900 font-bold",
-    
-    // Etiquetas
-    label: "text-gray-800",
-  };*/
 
   // Improved error handling function with better type safety
   const handleSupabaseError = (error: unknown): string => {

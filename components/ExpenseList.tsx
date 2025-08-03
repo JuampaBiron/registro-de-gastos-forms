@@ -25,13 +25,12 @@ export default function ExpenseList() {
   const currentYear = currentDate.getFullYear()
   const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0')
   const defaultYearMonth = `${currentYear}-${currentMonth}`
-
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [initialLoading, setInitialLoading] = useState(true)
   const [selectedYearMonth, setSelectedYearMonth] = useState(defaultYearMonth)
   const [availableYearMonths, setAvailableYearMonths] = useState<YearMonth[]>([])
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedType, setSelectedType] = useState<string>('')
   const [categories, setCategories] = useState<string[]>([])
@@ -43,7 +42,6 @@ export default function ExpenseList() {
   )
 
   const fetchExpenses = async () => {
-    setIsLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
 
     if (user) {
@@ -56,9 +54,6 @@ export default function ExpenseList() {
       if (error) {
         console.error('Error fetching expenses:', error)
       } else {
-        // Log para debugging
-        console.log('Datos recuperados:', data?.length || 0, 'gastos')
-        
         setExpenses(data || [])
         
         // Extract unique categories
@@ -97,7 +92,7 @@ export default function ExpenseList() {
         }
       }
     }
-    setIsLoading(false)
+    setInitialLoading(false) 
   }
 
   // Aplicar filtros
@@ -326,25 +321,41 @@ export default function ExpenseList() {
             </div>
           </div>
           
-          {/* Contenido principal (loading, sin resultados, lista de gastos) */}
-          {isLoading ? (
+          {/* Contenido principal*/}
+          {filteredExpenses.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
-              <p className="mt-2 text-gray-600">Cargando tus gastos...</p>
-            </div>
-          ) : filteredExpenses.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-600">No hay gastos para mostrar con los filtros actuales.</p>
+              <div className="text-gray-400 mb-3">
+                <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2V10z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-gray-600 text-lg font-medium mb-2">
+                {selectedCategory || selectedType 
+                  ? "No hay gastos con estos filtros" 
+                  : "No tienes gastos registrados aún"
+                }
+              </p>
+              {(selectedCategory || selectedType) && (
+                <p className="text-gray-500 text-sm">
+                  Intenta cambiar los filtros o{" "}
+                  <button 
+                    onClick={resetFilters}
+                    className="text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    mostrar todos los gastos
+                  </button>
+                </p>
+              )}
             </div>
           ) : (
             <>
               {/* Vista de tabla para pantallas grandes */}
               <table className="min-w-full divide-y divide-gray-200 hidden lg:table">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Categoría
                     </th>
