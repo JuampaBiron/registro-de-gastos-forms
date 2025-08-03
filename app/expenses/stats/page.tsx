@@ -86,7 +86,6 @@ export default function ExpenseStats() {
   const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([])
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
   
@@ -96,7 +95,6 @@ export default function ExpenseStats() {
   )
 
   const fetchExpenses = async () => {
-    setIsLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
 
     if (user) {
@@ -121,7 +119,6 @@ export default function ExpenseStats() {
         }
       }
     }
-    setIsLoading(false)
   }
 
   useEffect(() => {
@@ -315,17 +312,6 @@ export default function ExpenseStats() {
     ) : null;
   };
 
-  // El resto del código de renderizado permanece igual al original
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex flex-col justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
-          <p className="mt-2 text-gray-600">Cargando tus estadísticas...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6">

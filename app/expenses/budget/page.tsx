@@ -35,7 +35,6 @@ interface CategorySpending {
 export default function BudgetPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [categorySpendings, setCategorySpendings] = useState<CategorySpending[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [newBudget, setNewBudget] = useState<{
     category: string, 
     amount: number, 
@@ -111,11 +110,9 @@ export default function BudgetPage() {
   }
 
   const fetchBudgets = async () => {
-    setIsLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
-      setIsLoading(false)
       return
     }
 
@@ -200,7 +197,6 @@ export default function BudgetPage() {
       setCategorySpendings(spendings)
     }
     
-    setIsLoading(false)
   }
 
   useEffect(() => {
@@ -488,16 +484,6 @@ export default function BudgetPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex justify-center items-center py-6">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent align-[-0.125em]"></div>
-          <p className="mt-2 text-gray-600">Cargando tus presupuestos...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 px-2 sm:py-6 sm:px-4">
