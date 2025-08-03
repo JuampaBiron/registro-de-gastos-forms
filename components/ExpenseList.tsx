@@ -324,28 +324,7 @@ export default function ExpenseList() {
           {/* Contenido principal*/}
           {filteredExpenses.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-gray-400 mb-3">
-                <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2V10z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-gray-600 text-lg font-medium mb-2">
-                {selectedCategory || selectedType 
-                  ? "No hay gastos con estos filtros" 
-                  : "No tienes gastos registrados aún"
-                }
-              </p>
-              {(selectedCategory || selectedType) && (
-                <p className="text-gray-500 text-sm">
-                  Intenta cambiar los filtros o{" "}
-                  <button 
-                    onClick={resetFilters}
-                    className="text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    mostrar todos los gastos
-                  </button>
-                </p>
-              )}
+              <p className="text-gray-600">No hay gastos para mostrar con los filtros actuales.</p>
             </div>
           ) : (
             <>
