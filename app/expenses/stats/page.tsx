@@ -37,10 +37,10 @@ interface CategoryTotal {
 interface CustomTooltipProps {
   active?: boolean
   payload?: Array<{
-    value: any
+    value: any 
     name: string
     color: string
-    payload: any
+    payload: any 
   }>
   label?: string
   formatter?: (value: number) => string
