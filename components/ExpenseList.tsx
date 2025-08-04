@@ -9,6 +9,7 @@ import { ArrowLeft, Trash2, Wallet, Filter, Calendar, Tag, Edit3, Save, X } from
 import { getCategoryEmoji, CATEGORIES } from '@/constants/categories';
 import { formatCurrency, formatDate, handleSupabaseError, formatNumber } from '@/lib/utils';
 import type { Expense } from '@/lib/types';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface YearMonth {
   year: number;
@@ -58,7 +59,7 @@ export default function ExpenseList() {
 
   // Cliente de Supabase
   const supabase = typeof window !== 'undefined' ? 
-    require('@supabase/ssr').createBrowserClient(
+    createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     ) : null;

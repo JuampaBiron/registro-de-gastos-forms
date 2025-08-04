@@ -33,17 +33,17 @@ interface CategoryTotal {
   category: string
   total: number
 }
-
+interface ExpensePayload {
+  value: number;
+  name: string;
+  color: string;
+  payload: any;
+}
 interface CustomTooltipProps {
-  active?: boolean
-  payload?: Array<{
-    value: any 
-    name: string
-    color: string
-    payload: any 
-  }>
-  label?: string
-  formatter?: (value: number) => string
+  active?: boolean;
+  payload?: ExpensePayload[];
+  label?: string;
+  formatter?: (value: number) => string;
 }
 
 interface RenderCustomizedLabelProps {
