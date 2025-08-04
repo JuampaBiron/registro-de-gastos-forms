@@ -45,8 +45,10 @@ export default function BudgetPage() {
 
   // Función auxiliar para establecer la referencia del input
   const setInputRef = (el: HTMLInputElement | null, category: string) => {
-    if (inputRefs.current) {
-      inputRefs.current[category] = el;
+    inputRefs.current[category] = el;
+    if (el) {
+      el.focus();
+      el.select();
     }
   };
 
@@ -504,32 +506,46 @@ export default function BudgetPage() {
               </div>
             )}
 
-            {/* Lista de categorías */}
-            <div className="space-y-2">
-              {categorySpendings.map((item) => (
-                <div key={item.category} 
-                     className={`grid grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 transition-all ${
-                       item.percentage > 100 ? 'bg-red-50 border-red-200' : 
-                       item.percentage > 80 ? 'bg-yellow-50 border-yellow-200' :
-                       item.budget > 0 ? 'bg-green-50 border-green-200' : 
-                       'bg-gray-50 border-gray-200'
-                     } ${item.isEditing ? 'bg-indigo-50 border-indigo-500' : 'hover:bg-gray-50'} transition-colors`}>
-                  
-                  {/* Categoría */}
-                  <div className="col-span-1 font-medium text-gray-900 flex items-center">
-                    <span className="mr-2 text-xl">{getCategoryEmoji(item.category)}</span>
-                    <span className="truncate">{formatCategoryName(item.category)}</span>
+          {/* Lista de categorías - DISEÑO MEJORADO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categorySpendings.map((item) => (
+              <div key={item.category} 
+                  className={`relative p-5 rounded-2xl border-2 transition-all hover:shadow-lg ${
+                    item.percentage > 100 ? 'bg-red-50 border-red-200 hover:shadow-red-100' : 
+                    item.percentage > 80 ? 'bg-yellow-50 border-yellow-200 hover:shadow-yellow-100' :
+                    item.budget > 0 ? 'bg-green-50 border-green-200 hover:shadow-green-100' : 
+                    'bg-gray-50 border-gray-200 hover:shadow-gray-100'
+                  } ${item.isEditing ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-200' : ''}`}>
+                
+                {/* Header de la card - Categoría */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{getCategoryEmoji(item.category)}</span>
+                    <h3 className="font-semibold text-gray-900 text-lg">
+                      {formatCategoryName(item.category)}
+                    </h3>
                   </div>
                   
+                  {/* Porcentaje como badge */}
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    item.percentage > 100 ? 'bg-red-100 text-red-700' : 
+                    item.percentage > 80 ? 'bg-yellow-100 text-yellow-700' :
+                    item.budget > 0 ? 'bg-green-100 text-green-700' : 
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {item.budget > 0 ? `${item.percentage.toFixed(0)}%` : 'Sin presupuesto'}
+                  </div>
+                </div>
+
+                {/* Montos */}
+                <div className="space-y-3 mb-4">
                   {/* Presupuesto */}
-                  <div className="col-span-1 relative">
-                    <div className="relative rounded-lg shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-black text-xs">$</span>
-                      </div>
-                      <div className="flex items-center w-full">
-                        {/* Input visible solo cuando se está editando */}
-                        {item.isEditing ? (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-600">Presupuesto</span>
+                    <div className="relative">
+                      {item.isEditing ? (
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
                           <input
                             ref={(el) => setInputRef(el, item.category)}
                             type="text"
@@ -537,72 +553,255 @@ export default function BudgetPage() {
                             onChange={(e) => handleBudgetChange(item.category, e.target.value)}
                             onBlur={() => handleBudgetBlur(item.category)}
                             onKeyDown={(e) => handleKeyDown(e, item.category)}
-                            className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-indigo-500 focus:ring-2 focus:ring-indigo-500 bg-white text-sm font-bold text-black"
+                            className="w-32 pl-6 pr-3 py-2 text-sm font-bold text-right border-2 border-indigo-500 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
                             inputMode="numeric"
                             placeholder="0"
                           />
-                        ) : (
-                          /* Div para mostrar el valor formateado */
-                          <div 
-                            onClick={() => handleBudgetFocus(item.category)}
-                            className="block w-full pl-6 pr-2 py-1.5 rounded-lg border-2 border-gray-200 text-sm font-bold text-black cursor-pointer"
-                          >
-                            {item.budget === 0 ? '' : formatNumber(item.budget.toString())}
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => handleBudgetFocus(item.category)}
+                          className="px-3 py-2 text-sm font-bold text-right bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors min-w-[120px]"
+                        >
+                          ${item.budget === 0 ? '0' : formatNumber(item.budget.toString())}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
+
                   {/* Gastado */}
-                  <div className="col-span-1 flex items-center">
-                    <div className="py-1.5 px-2 rounded-lg border-2 border-gray-200 text-sm font-bold text-black tabular-nums w-full">
-                      <span>${formatNumber(item.spent.toString())}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-600">Gastado</span>
+                    <div className="px-3 py-2 text-sm font-bold text-right bg-white border-2 border-gray-200 rounded-lg min-w-[120px]">
+                      ${formatNumber(item.spent.toString())}
                     </div>
                   </div>
-                  
-                  {/* Progreso */}
-                  <div className="col-span-1 flex items-center">
-                    {item.budget > 0 ? (
-                      <div className="w-full">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs font-medium ${
-                            item.percentage > 100 ? 'text-red-600' : 
-                            item.percentage > 80 ? 'text-yellow-600' : 'text-green-600'
-                          }`}>
-                            {item.percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all ${
-                              item.percentage > 100 ? 'bg-red-500' : 
-                              item.percentage > 80 ? 'bg-yellow-500' : 'bg-green-500'
-                            }`}
-                            style={{ width: `${Math.min(item.percentage, 100)}%` }}
-                          ></div>
-                        </div>
+
+                  {/* Disponible */}
+                  {item.budget > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-600">Disponible</span>
+                      <div className={`px-3 py-2 text-sm font-bold text-right rounded-lg min-w-[120px] ${
+                        item.budget - item.spent >= 0 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        ${formatNumber((item.budget - item.spent).toString())}
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Barra de progreso */}
+                {item.budget > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Progreso</span>
+                      <span className={`text-xs font-medium ${
+                        item.percentage > 100 ? 'text-red-600' : 
+                        item.percentage > 80 ? 'text-yellow-600' : 'text-green-600'
+                      }`}>
+                        {item.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-300 ${
+                          item.percentage > 100 ? 'bg-red-500' : 
+                          item.percentage > 80 ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                      ></div>
+                    </div>
+                    
+                    {/* Indicador de exceso */}
+                    {item.percentage > 100 && (
+                      <div className="text-xs text-red-600 font-medium text-center mt-1">
+                        Exceso: ${formatNumber((item.spent - item.budget).toString())}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mensaje para categorías sin presupuesto */}
+                {item.budget === 0 && item.spent > 0 && (
+                  <div className="text-center py-3">
+                    <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      Click para asignar presupuesto
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+            {/* Fila de totales */}
+
+            {/* Sección de Totales Mejorada */}
+            <div className="mt-8 pt-6 border-t-2 border-gray-200">
+              
+              {/* Título de la sección */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">∑</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">Resumen General</h2>
+                </div>
+              </div>
+
+              {/* Cards de totales */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Total Presupuesto */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-200">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-white text-lg">🎯</span>
+                  </div>
+                  <div className="text-3xl font-bold text-blue-700 mb-1">
+                    ${formatNumber(totalBudget.toString())}
+                  </div>
+                  <div className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+                    Presupuesto Total
+                  </div>
+                </div>
+
+                {/* Total Gastado */}
+                <div className="bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-200">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-white text-lg">💳</span>
+                  </div>
+                  <div className="text-3xl font-bold text-purple-700 mb-1">
+                    ${formatNumber(totalSpent.toString())}
+                  </div>
+                  <div className="text-sm font-medium text-purple-600 uppercase tracking-wide">
+                    Total Gastado
+                  </div>
+                </div>
+
+                {/* Porcentaje de Uso */}
+                <div className={`bg-gradient-to-br border-2 rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-200 ${
+                  totalPercentage > 100 
+                    ? 'from-red-50 to-red-100 border-red-200' 
+                    : totalPercentage > 80 
+                    ? 'from-yellow-50 to-orange-100 border-yellow-200'
+                    : 'from-green-50 to-emerald-100 border-green-200'
+                }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                    totalPercentage > 100 
+                      ? 'bg-red-500' 
+                      : totalPercentage > 80 
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}>
+                    <span className="text-white text-lg">
+                      {totalPercentage > 100 ? '⚠️' : totalPercentage > 80 ? '⚡' : '✅'}
+                    </span>
+                  </div>
+                  <div className={`text-3xl font-bold mb-1 ${
+                    totalPercentage > 100 
+                      ? 'text-red-700' 
+                      : totalPercentage > 80 
+                      ? 'text-yellow-700'
+                      : 'text-green-700'
+                  }`}>
+                    {totalPercentage.toFixed(1)}%
+                  </div>
+                  <div className={`text-sm font-medium uppercase tracking-wide ${
+                    totalPercentage > 100 
+                      ? 'text-red-600' 
+                      : totalPercentage > 80 
+                      ? 'text-yellow-600'
+                      : 'text-green-600'
+                  }`}>
+                    Uso del Presupuesto
+                  </div>
+                </div>
+              </div>
+
+              {/* Información adicional */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Disponible */}
+                <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600">💰</span>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Disponible</div>
+                      <div className={`text-lg font-bold ${
+                        totalBudget - totalSpent >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        ${formatNumber((totalBudget - totalSpent).toString())}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                
+              </div>
+
+              {/* Barra de progreso general */}
+              {totalBudget > 0 && (
+                <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-gray-700">Progreso General del Mes</span>
+                    <span className={`text-sm font-bold ${
+                      totalPercentage > 100 ? 'text-red-600' : 
+                      totalPercentage > 80 ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
+                      {totalPercentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div 
+                      className={`h-4 rounded-full transition-all duration-500 ${
+                        totalPercentage > 100 ? 'bg-gradient-to-r from-red-400 to-red-600' : 
+                        totalPercentage > 80 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 
+                        'bg-gradient-to-r from-green-400 to-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(totalPercentage, 100)}%` }}
+                    ></div>
+                  </div>
+                  
+                  {/* Mensaje de estado */}
+                  <div className="mt-3 text-center">
+                    {totalPercentage > 100 ? (
+                      <span className="text-sm text-red-600 font-medium">
+                        ⚠️ Has excedido tu presupuesto en ${formatNumber((totalSpent - totalBudget).toString())}
+                      </span>
+                    ) : totalPercentage > 80 ? (
+                      <span className="text-sm text-yellow-600 font-medium">
+                        ⚡ Te quedan ${formatNumber((totalBudget - totalSpent).toString())} este mes
+                      </span>
                     ) : (
-                      <span className="text-xs text-gray-500">Sin presupuesto</span>
+                      <span className="text-sm text-green-600 font-medium">
+                        ✅ Vas bien con tu presupuesto. Te quedan ${formatNumber((totalBudget - totalSpent).toString())}
+                      </span>
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Fila de totales */}
-            <div className="mt-6 pt-4 border-t-2 border-gray-200">
-              <div className="grid grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-100 rounded-xl font-bold">
-                <div className="col-span-1 text-gray-900">TOTALES</div>
-                <div className="col-span-1 text-indigo-700 tabular-nums">${formatNumber(totalBudget.toString())}</div>
-                <div className="col-span-1 text-purple-700 tabular-nums">${formatNumber(totalSpent.toString())}</div>
-                <div className="col-span-1">
-                  <span className={`${totalPercentage > 100 ? 'text-red-600' : totalPercentage > 80 ? 'text-yellow-600' : 'text-green-600'}`}>
-                    {totalPercentage.toFixed(1)}%
-                  </span>
+              )}
+              
+              {/* Mensaje cuando no hay presupuesto */}
+              {totalBudget === 0 && (
+                <div className="mt-6 text-center p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                  <div className="text-4xl mb-4">🎯</div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Sin presupuestos definidos</h3>
+                  <p className="text-gray-600 mb-4">
+                    Establece presupuestos para tus categorías y lleva un mejor control de tus gastos
+                  </p>
+                  <button
+                    onClick={handleAddBudget}
+                    className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <PlusCircle className="w-5 h-5 mr-2" />
+                    Crear mi primer presupuesto
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
