@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { LogOut, TrendingUp, Wallet, CreditCard, ArrowRight, Calendar } from 'lucide-react';
+import { LogOut, TrendingUp, Wallet, CreditCard, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 // Importar nuestras utilidades y constantes
@@ -15,7 +15,6 @@ import {
   getMonthName, 
   handleSupabaseError 
 } from '@/lib/utils';
-import type { Budget } from '@/lib/types';
 
 interface BudgetProgress {
   percentage: number;

@@ -8,7 +8,7 @@ import { ArrowLeft, Trash2, Wallet, Filter, Calendar, Tag, Edit3, Save, X } from
 // Importar nuestras utilidades y constantes
 import { getCategoryEmoji, CATEGORIES } from '@/constants/categories';
 import { formatCurrency, formatDate, handleSupabaseError, formatNumber } from '@/lib/utils';
-import type { Expense, ExpenseFilters } from '@/lib/types';
+import type { Expense } from '@/lib/types';
 
 interface YearMonth {
   year: number;

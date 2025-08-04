@@ -11,7 +11,6 @@ import {
 } from 'recharts'
 
 // Importar nuestras utilidades y componentes
-import { getCategoryEmoji } from '@/constants/categories'
 import { formatCurrency, formatMonth } from '@/lib/utils'
 import { calculateKPIs, generateInsights, type KPIData } from '@/lib/statsCalculations'
 import type { Expense, Budget } from '@/lib/types'

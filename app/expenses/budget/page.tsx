@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { Save, ArrowLeft, PlusCircle, X, BarChart3, Home, RefreshCw } from 'lucide-react'
+import {  ArrowLeft, PlusCircle, X, BarChart3, Home, RefreshCw } from 'lucide-react'
 
 // Importar nuestras utilidades y constantes
 import { getCategoryEmoji, CATEGORIES } from '@/constants/categories'
