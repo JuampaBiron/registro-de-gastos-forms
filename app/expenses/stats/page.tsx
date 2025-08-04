@@ -330,7 +330,7 @@ export default function StatsPageWithKPIs() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent mb-4"></div>
-          <p className="text-gray-600 font-medium text-lg">Cargando estadísticas avanzadas...</p>
+          <p className="text-gray-600 font-medium text-lg">Cargando estadísticas...</p>
         </div>
       </div>
     )
@@ -354,7 +354,7 @@ export default function StatsPageWithKPIs() {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Link>
-                <h1 className="text-2xl font-bold text-white">📊 Estadísticas Avanzadas</h1>
+                <h1 className="text-2xl font-bold text-white">📊 Estadísticas</h1>
               </div>
               
               <div className="flex items-center space-x-2">
