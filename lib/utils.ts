@@ -80,15 +80,16 @@ export const formatMonth = (monthKey: string): string => {
 /**
  * Maneja errores de Supabase y devuelve mensajes amigables
  */
-export const handleSupabaseError = (error: any): string => {
-  // Aquí puedes agregar más casos específicos según los errores que manejes
-  if (error?.code === '23505') {
+export const handleSupabaseError = (error: unknown): string => {  // ✅ Solución
+  const supabaseError = error as { code?: string; message?: string };
+  
+  if (supabaseError?.code === '23505') {
     return 'Ya existe un registro con estos datos';
   }
   
-  if (error?.code === '42501') {
+  if (supabaseError?.code === '42501') {
     return 'No tienes permisos para realizar esta acción';
   }
 
-  return error?.message || 'Ha ocurrido un error inesperado';
+  return supabaseError?.message || 'Ha ocurrido un error inesperado';
 };

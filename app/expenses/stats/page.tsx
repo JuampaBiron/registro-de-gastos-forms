@@ -40,7 +40,7 @@ interface CustomTooltipProps {
     value: number; 
     name: string;
     color: string;
-    payload: any; 
+    payload: Record<string, unknown>;  
   }>
   label?: string
   formatter?: (value: number) => string
