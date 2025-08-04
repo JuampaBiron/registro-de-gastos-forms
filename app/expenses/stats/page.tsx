@@ -1,4 +1,4 @@
-// app/expenses/stats/page.tsx (con Dashboard de KPIs)
+// app/expenses/stats/page.tsx - VERSIÓN CORREGIDA (con filtros por mes)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -117,8 +117,7 @@ export default function StatsPageWithKPIs() {
         setExpenses(expenseData)
         setBudgets(budgetData || [])
         generateAvailableMonths(expenseData)
-        generateMonthlyTotals(expenseData)
-        generateCategoryTotals(expenseData)
+        generateMonthlyTotals(expenseData) // Esta sí debe mostrar todos los meses
       }
     } catch (error) {
       console.error('Error inesperado al cargar datos:', error)
@@ -127,7 +126,7 @@ export default function StatsPageWithKPIs() {
     }
   }
 
-  // Funciones existentes (mantener las mismas)
+  // Generar meses disponibles
   const generateAvailableMonths = (expenses: Expense[]) => {
     const monthsSet = new Set<string>()
     
@@ -146,6 +145,7 @@ export default function StatsPageWithKPIs() {
     }
   }
 
+  // Esta función debe mostrar TODOS los meses (para el gráfico de barras mensuales)
   const generateMonthlyTotals = (expenses: Expense[]) => {
     const monthlyMap = new Map<string, number>()
     
@@ -169,17 +169,28 @@ export default function StatsPageWithKPIs() {
     setMonthlyTotals(monthlyTotals)
   }
 
-  const generateCategoryTotals = (expenses: Expense[]) => {
+  // 🚀 NUEVA FUNCIÓN: Generar categorías FILTRADAS por mes seleccionado
+  const generateCategoryTotals = (expenses: Expense[], selectedMonth: string) => {
+    // Filtrar gastos del mes seleccionado
+    const monthExpenses = expenses.filter(expense => {
+      const date = new Date(expense.created_at)
+      const year = date.getFullYear()
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const expenseMonth = `${year}-${month}`
+      return expenseMonth === selectedMonth
+    })
+
     const categoryMap = new Map<string, number>()
     
-    expenses.forEach(expense => {
+    // Solo procesar gastos del mes seleccionado
+    monthExpenses.forEach(expense => {
       categoryMap.set(expense.category, (categoryMap.get(expense.category) || 0) + expense.amount)
     })
 
     const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
       .map(([category, total]) => ({ category, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 7)
+      .slice(0, 8) // Mostrar hasta 8 categorías
 
     setCategoryTotals(categoryTotals)
   }
@@ -240,7 +251,7 @@ export default function StatsPageWithKPIs() {
     URL.revokeObjectURL(url)
   }
 
-  // Componentes de tooltip (mantener los existentes)
+  // Componentes de tooltip
   const CustomTooltip: React.FC<CustomTooltipProps> = ({ 
     active, 
     payload, 
@@ -306,9 +317,11 @@ export default function StatsPageWithKPIs() {
     fetchData()
   }, [])
 
+  // 🚀 ACTUALIZADO: Generar datos cuando cambie el mes seleccionado
   useEffect(() => {
     if (selectedMonth && expenses.length > 0) {
       generateDailyExpenses(expenses, selectedMonth)
+      generateCategoryTotals(expenses, selectedMonth) // ¡Ahora filtra por mes!
     }
   }, [selectedMonth, expenses])
 
@@ -399,14 +412,14 @@ export default function StatsPageWithKPIs() {
           </div>
         </div>
 
-        {/* 🚀 NUEVO: Dashboard de KPIs */}
+        {/* Dashboard de KPIs */}
         {kpiData && (
           <div className="bg-white rounded-3xl shadow-xl mb-6 p-6">
             <KPIDashboard data={kpiData} insights={insights} />
           </div>
         )}
 
-        {/* Gráficos existentes (mantener todos) */}
+        {/* Gráficos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Gráfico de Gastos Diarios */}
@@ -468,40 +481,54 @@ export default function StatsPageWithKPIs() {
             </div>
           </div>
 
-          {/* Gráfico de distribución por categorías */}
+          {/* 🚀 GRÁFICO DE CATEGORÍAS ACTUALIZADO - Ahora filtra por mes */}
           <div className="bg-white p-6 rounded-3xl shadow-xl">
-            <div className="flex items-center mb-4">
-              <PieChartIcon className="w-5 h-5 mr-2 text-indigo-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Distribución por Categorías</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                <PieChartIcon className="w-5 h-5 mr-2 text-indigo-600" />
+                Distribución por Categorías
+              </h2>
+              <div className="text-sm text-gray-500">
+                {formatMonth(selectedMonth)}
+              </div>
             </div>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryTotals}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={renderCustomizedLabel}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="total"
-                    nameKey="category"
-                  >
-                    {categoryTotals.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
-                </PieChart>
-              </ResponsiveContainer>
+              {categoryTotals.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryTotals}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="total"
+                      nameKey="category"
+                    >
+                      {categoryTotals.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <PieChartIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>Sin gastos en {formatMonth(selectedMonth)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Gráfico de Gastos Mensuales */}
+          {/* Gráfico de Gastos Mensuales (este SÍ debe mostrar todos los meses) */}
           <div className="bg-white p-6 rounded-3xl shadow-xl">
             <div className="flex items-center mb-4">
               <BarChart2 className="w-5 h-5 mr-2 text-indigo-600" />

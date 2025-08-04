@@ -1,4 +1,5 @@
-// lib/statsCalculations.ts
+// lib/statsCalculations.ts - VERSIÓN MEJORADA
+
 import type { Expense, Budget } from '@/lib/types';
 
 export interface KPIData {
@@ -10,7 +11,76 @@ export interface KPIData {
   daysUntilMonthEnd: number;
   projectedMonthlyTotal: number;
   budgetRemaining: number;
+  projectionMethod: string; // Nuevo: para mostrar cómo se calculó
 }
+
+/**
+ * Calcula una proyección más realista del gasto mensual
+ */
+const calculateSmartProjection = (
+  thisMonthExpenses: Expense[],
+  lastMonthExpenses: Expense[],
+  totalThisMonth: number,
+  daysIntoMonth: number,
+  lastDayOfMonth: number,
+  isCurrentMonth: boolean
+): { projection: number; method: string } => {
+  
+  if (!isCurrentMonth) {
+    return { projection: totalThisMonth, method: 'Mes completado' };
+  }
+
+  // Opción 1: Si estamos muy temprano en el mes (primeros 5 días)
+  // Usar promedio del mes anterior como referencia
+  if (daysIntoMonth <= 5 && lastMonthExpenses.length > 0) {
+    const lastMonthTotal = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const currentProgress = totalThisMonth;
+    const expectedProgress = (lastMonthTotal / 30) * daysIntoMonth; // Estimado basado en mes anterior
+    
+    // Si el gasto actual está muy por encima del esperado, usar una proyección más conservadora
+    if (currentProgress > expectedProgress * 1.5) {
+      const conservativeProjection = lastMonthTotal * 1.1; // 10% más que el mes anterior
+      return { projection: conservativeProjection, method: 'Conservadora (basada en mes anterior)' };
+    }
+  }
+
+  // Opción 2: Si tenemos suficientes días de datos (6+ días)
+  // Usar promedio móvil de los últimos 7 días
+  if (daysIntoMonth >= 6) {
+    const last7Days = thisMonthExpenses
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, Math.min(7, daysIntoMonth));
+    
+    if (last7Days.length > 0) {
+      const last7DaysTotal = last7Days.reduce((sum, expense) => sum + expense.amount, 0);
+      const avgLast7Days = last7DaysTotal / last7Days.length;
+      const projectionFromAverage = avgLast7Days * lastDayOfMonth;
+      
+      return { projection: projectionFromAverage, method: 'Promedio últimos 7 días' };
+    }
+  }
+
+  // Opción 3: Proyección híbrida para casos intermedios
+  if (daysIntoMonth >= 3) {
+    const simpleProjection = (totalThisMonth / daysIntoMonth) * lastDayOfMonth;
+    
+    // Si hay datos del mes anterior, hacer un blend
+    if (lastMonthExpenses.length > 0) {
+      const lastMonthTotal = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      
+      // Peso: 70% proyección actual, 30% referencia mes anterior
+      const blendedProjection = (simpleProjection * 0.7) + (lastMonthTotal * 0.3);
+      return { projection: blendedProjection, method: 'Híbrida (actual + mes anterior)' };
+    }
+    
+    // Si no hay mes anterior, usar proyección simple pero limitada
+    const cappedProjection = Math.min(simpleProjection, totalThisMonth * 3); // Máximo 3x el gasto actual
+    return { projection: cappedProjection, method: 'Simple limitada' };
+  }
+
+  // Opción 4: Muy pocos días, proyección muy conservadora
+  return { projection: totalThisMonth * 2, method: 'Muy conservadora (pocos datos)' };
+};
 
 /**
  * Calcula todos los KPIs necesarios para el dashboard
@@ -82,10 +152,15 @@ export const calculateKPIs = (
   const lastDayOfMonth = new Date(year, month, 0).getDate();
   const daysUntilMonthEnd = isCurrentMonth ? lastDayOfMonth - now.getDate() : 0;
   
-  // Proyección fin de mes
-  const projectedMonthlyTotal = isCurrentMonth && daysIntoMonth > 0
-    ? (totalThisMonth / daysIntoMonth) * lastDayOfMonth
-    : totalThisMonth;
+  // 🚀 NUEVA PROYECCIÓN INTELIGENTE
+  const { projection: projectedMonthlyTotal, method: projectionMethod } = calculateSmartProjection(
+    thisMonthExpenses,
+    lastMonthExpenses,
+    totalThisMonth,
+    daysIntoMonth,
+    lastDayOfMonth,
+    isCurrentMonth
+  );
   
   return {
     totalThisMonth,
@@ -95,7 +170,8 @@ export const calculateKPIs = (
     topCategory,
     daysUntilMonthEnd,
     projectedMonthlyTotal,
-    budgetRemaining
+    budgetRemaining,
+    projectionMethod
   };
 };
 
@@ -123,9 +199,10 @@ export const generateInsights = (expenses: Expense[], budgets: Budget[], kpis: K
     insights.push(`📉 ¡Excelente! Reduciste tus gastos ${Math.abs(monthChange).toFixed(1)}% este mes`);
   }
 
-  // Insight sobre proyección
-  if (kpis.projectedMonthlyTotal > kpis.totalThisMonth * 1.3) {
-    insights.push(`🎯 A tu ritmo actual, podrías gastar ${((kpis.projectedMonthlyTotal / kpis.totalThisMonth - 1) * 100).toFixed(0)}% más de lo planeado`);
+  // Insight mejorado sobre proyección
+  if (kpis.projectedMonthlyTotal > kpis.totalThisMonth * 1.5) {
+    const increasePercent = ((kpis.projectedMonthlyTotal / kpis.totalThisMonth - 1) * 100).toFixed(0);
+    insights.push(`🎯 Proyección: ${increasePercent}% más que el gasto actual (${kpis.projectionMethod.toLowerCase()})`);
   }
 
   // Insight sobre categoría dominante

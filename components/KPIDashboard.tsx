@@ -1,8 +1,8 @@
-// components/KPIDashboard.tsx
+// components/KPIDashboard.tsx - VERSIÓN ACTUALIZADA
 'use client'
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Target, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Calendar, DollarSign, AlertTriangle, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { KPIData } from '@/lib/statsCalculations';
 
@@ -14,6 +14,7 @@ interface KPICardProps {
   icon: React.ReactNode;
   subtitle?: string;
   color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
+  tooltip?: string; // Nuevo: para explicar cálculos
 }
 
 const KPICard: React.FC<KPICardProps> = ({ 
@@ -23,7 +24,8 @@ const KPICard: React.FC<KPICardProps> = ({
   trend, 
   icon, 
   subtitle,
-  color = 'blue' 
+  color = 'blue',
+  tooltip 
 }) => {
   const colorClasses = {
     blue: 'bg-blue-50 border-blue-200 text-blue-700',
@@ -42,20 +44,30 @@ const KPICard: React.FC<KPICardProps> = ({
   };
 
   return (
-    <div className={`p-4 rounded-xl border-2 ${colorClasses[color]} transition-all hover:shadow-md hover:scale-105 duration-200`}>
+    <div className={`p-4 rounded-xl border-2 ${colorClasses[color]} transition-all hover:shadow-md hover:scale-105 duration-200 relative group`}>
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg bg-white ${iconColorClasses[color]} shadow-sm`}>
           {icon}
         </div>
-        {change && (
-          <div className={`flex items-center text-sm font-medium ${
-            trend === 'up' ? 'text-red-600' : trend === 'down' ? 'text-green-600' : 'text-gray-600'
-          }`}>
-            {trend === 'up' && <TrendingUp className="w-4 h-4 mr-1" />}
-            {trend === 'down' && <TrendingDown className="w-4 h-4 mr-1" />}
-            {change}
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          {change && (
+            <div className={`flex items-center text-sm font-medium ${
+              trend === 'up' ? 'text-red-600' : trend === 'down' ? 'text-green-600' : 'text-gray-600'
+            }`}>
+              {trend === 'up' && <TrendingUp className="w-4 h-4 mr-1" />}
+              {trend === 'down' && <TrendingDown className="w-4 h-4 mr-1" />}
+              {change}
+            </div>
+          )}
+          {tooltip && (
+            <div className="relative">
+              <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+              <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                {tooltip}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="space-y-1">
@@ -88,6 +100,10 @@ const KPIDashboard: React.FC<KPIDashboardProps> = ({ data, insights = [] }) => {
   // Calcular días promedio de gasto
   const daysIntoMonth = new Date().getDate();
   const spendingRate = data.totalThisMonth / daysIntoMonth;
+
+  // Determinar color de la proyección basado en qué tan realista es
+  const projectionMultiplier = data.projectedMonthlyTotal / data.totalThisMonth;
+  const projectionColor = projectionMultiplier > 3 ? 'red' : projectionMultiplier > 2 ? 'yellow' : 'green';
   
   return (
     <div className="mb-8">
@@ -129,6 +145,7 @@ const KPIDashboard: React.FC<KPIDashboardProps> = ({ data, insights = [] }) => {
                 : 'Sin presupuesto definido'
           }
           color={budgetColor}
+          tooltip="Porcentaje del presupuesto total utilizado este mes"
         />
         
         {/* Promedio diario */}
@@ -138,21 +155,23 @@ const KPIDashboard: React.FC<KPIDashboardProps> = ({ data, insights = [] }) => {
           icon={<Calendar className="w-5 h-5" />}
           subtitle={`Basado en ${daysIntoMonth} días`}
           color="purple"
+          tooltip={`Total gastado (${formatCurrency(data.totalThisMonth)}) dividido por días transcurridos (${daysIntoMonth})`}
         />
         
-        {/* Proyección */}
+        {/* Proyección mejorada */}
         <KPICard
           title="Proyección Fin de Mes"
           value={formatCurrency(data.projectedMonthlyTotal)}
           change={data.projectedMonthlyTotal > data.totalThisMonth ? 
             `+${formatCurrency(data.projectedMonthlyTotal - data.totalThisMonth)} estimado` : undefined}
           icon={<TrendingUp className="w-5 h-5" />}
-          subtitle={`${data.daysUntilMonthEnd} días restantes`}
-          color={data.projectedMonthlyTotal > (data.budgetUsage > 0 ? data.totalThisMonth / (data.budgetUsage/100) : data.totalThisMonth * 1.5) ? 'red' : 'green'}
+          subtitle={`${data.daysUntilMonthEnd} días restantes • ${data.projectionMethod}`}
+          color={projectionColor}
+          tooltip={`Método de cálculo: ${data.projectionMethod}. Esta proyección considera patrones de gasto más realistas que un simple promedio diario.`}
         />
       </div>
       
-      {/* Panel de insights */}
+      {/* Panel de insights mejorado */}
       {insights.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4">
@@ -172,14 +191,14 @@ const KPIDashboard: React.FC<KPIDashboardProps> = ({ data, insights = [] }) => {
               <div className="p-1 bg-yellow-100 rounded-lg mr-2">
                 <TrendingUp className="w-4 h-4 text-yellow-600" />
               </div>
-              <h3 className="font-semibold text-yellow-800">⚡ Análisis de Ritmo</h3>
+              <h3 className="font-semibold text-yellow-800">📊 Análisis de Proyección</h3>
             </div>
             <p className="text-sm text-yellow-700 leading-relaxed">
-              A tu ritmo actual de <strong>{formatCurrency(spendingRate)}/día</strong>, 
-              terminarás el mes con aproximadamente <strong>{formatCurrency(data.projectedMonthlyTotal)}</strong>.
-              {data.projectedMonthlyTotal > data.totalThisMonth * 1.2 && (
-                <span className="block mt-1 font-medium">
-                  ⚠️ Considera ajustar el gasto diario.
+              <strong>Método:</strong> {data.projectionMethod}<br/>
+              <strong>Estimado:</strong> {formatCurrency(data.projectedMonthlyTotal)}
+              {data.projectedMonthlyTotal > data.totalThisMonth * 2 && (
+                <span className="block mt-1 font-medium text-yellow-800">
+                  ⚠️ Proyección alta - considera ajustar gastos diarios.
                 </span>
               )}
             </p>
