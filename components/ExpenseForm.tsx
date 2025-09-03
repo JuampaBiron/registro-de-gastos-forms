@@ -83,7 +83,7 @@ export default function ExpenseForm() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
-        console.error('Error al obtener usuario:', userError);
+        console.log('Error al obtener usuario:', userError);
         // Si el error es de token, intentamos hacer logout para limpiar la sesión
         if (userError.code === 'refresh_token_not_found') {
           await handleLogout();
@@ -100,13 +100,23 @@ export default function ExpenseForm() {
         .eq('user_email', user.email);
       
       if (budgetError) {
-        console.error('Error al cargar presupuestos:', budgetError);
+        console.log('Error al cargar presupuestos:', {
+          error: budgetError,
+          message: budgetError?.message || 'Error desconocido',
+          code: budgetError?.code || 'Sin código'
+        });
         return;
       }
 
+      console.log('Budget data received:', budgetData);
+      
       const budgetMap: { [key: string]: number } = {};
       budgetData?.forEach(budget => {
-        budgetMap[budget.category] = budget.amount;
+        if (budget.category && typeof budget.amount === 'number') {
+          budgetMap[budget.category] = budget.amount;
+        } else {
+          console.log('Budget data inválido (filtrado):', budget);
+        }
       });
       setBudgets(budgetMap);
 
@@ -125,18 +135,28 @@ export default function ExpenseForm() {
         .lte('created_at', endOfMonth);
 
       if (expenseError) {
-        console.error('Error al cargar gastos:', expenseError);
+        console.log('Error al cargar gastos:', {
+          error: expenseError,
+          message: expenseError?.message || 'Error desconocido',
+          code: expenseError?.code || 'Sin código'
+        });
         return;
       }
 
+      console.log('Expense data received:', expenseData);
+      
       const spendingMap: { [key: string]: number } = {};
       expenseData?.forEach(expense => {
-        spendingMap[expense.category] = (spendingMap[expense.category] || 0) + expense.amount;
+        if (expense.category && typeof expense.amount === 'number') {
+          spendingMap[expense.category] = (spendingMap[expense.category] || 0) + expense.amount;
+        } else {
+          console.log('Expense data inválido (filtrado):', expense);
+        }
       });
       setMonthlySpending(spendingMap);
 
     } catch (error) {
-      console.error('Error inesperado al cargar presupuestos:', error);
+      console.log('Error inesperado al cargar presupuestos:', error);
     }
   };
 
@@ -164,8 +184,11 @@ export default function ExpenseForm() {
         observation: formData.observation,
         type: formData.type,
         user_email: user.email,
-        created_at: formData.date + 'T00:00:00'
+        created_at: formData.date
       };
+      
+      console.log('Enviando fecha:', formData.date);
+      console.log('Datos completos:', expenseData);
 
       // Insertar gasto
       const { error } = await supabase
