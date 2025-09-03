@@ -598,27 +598,32 @@ export default function ExpenseList() {
               </div>
             </div>
             
-            <div className="flex justify-between items-center">
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              >
-                Limpiar filtros
-              </button>
+            {/* Botones y total - Layout responsive */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              {/* Botones de acción */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+                
+                <button
+                  onClick={exportToExcel}
+                  disabled={filteredExpenses.length === 0}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar Excel
+                </button>
+              </div>
               
-              <button
-                onClick={exportToExcel}
-                disabled={filteredExpenses.length === 0}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Descargar Excel
-              </button>
-              
-              <div className="p-2 px-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex items-center">
+              {/* Total */}
+              <div className="p-3 px-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 shadow-sm">
+                <div className="flex items-center justify-center sm:justify-start">
                   <span className="text-sm font-medium text-gray-600 mr-2">Total:</span>
-                  <span className="text-lg font-bold text-indigo-700 tabular-nums">
+                  <span className="text-xl font-bold text-indigo-700 tabular-nums">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>
