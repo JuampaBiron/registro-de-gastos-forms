@@ -3,7 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Trash2, Wallet, Filter, Calendar, Tag, Edit3, Save, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Wallet, Filter, Calendar, Tag, Edit3, Save, X, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 // Importar nuestras utilidades y constantes
 import { getCategoryEmoji, CATEGORIES } from '@/constants/categories';
@@ -22,6 +23,7 @@ interface EditExpenseData {
   amount: string; // String para manejar el formato con separadores
   type: 'Individual' | 'Compartido';
   observation: string;
+  date: string; // Fecha en formato YYYY-MM-DD
 }
 
 export default function ExpenseList() {
@@ -47,7 +49,8 @@ export default function ExpenseList() {
     category: '',
     amount: '',
     type: 'Individual',
-    observation: ''
+    observation: '',
+    date: ''
   });
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   
@@ -211,11 +214,16 @@ export default function ExpenseList() {
   // Funciones para edición
   const handleEditClick = (expense: Expense) => {
     setExpenseToEdit(expense);
+    // Convertir la fecha del gasto al formato YYYY-MM-DD para el input date
+    const expenseDate = new Date(expense.created_at);
+    const formattedDate = expenseDate.toISOString().split('T')[0];
+    
     setEditFormData({
       category: expense.category,
       amount: expense.amount.toString(),
       type: expense.type as 'Individual' | 'Compartido',
-      observation: expense.observation || ''
+      observation: expense.observation || '',
+      date: formattedDate
     });
     setShowEditModal(true);
   };
@@ -240,7 +248,7 @@ export default function ExpenseList() {
     if (!expenseToEdit || !supabase) return;
 
     // Validación básica
-    if (!editFormData.category || !editFormData.amount) {
+    if (!editFormData.category || !editFormData.amount || !editFormData.date) {
       alert('Por favor completa todos los campos obligatorios');
       return;
     }
@@ -255,11 +263,15 @@ export default function ExpenseList() {
 
     try {
       // 🔧 CORREGIDO: Datos para actualizar en Supabase
+      // Crear timestamp con zona horaria de Santiago para la fecha editada
+      const dateWithTimezone = editFormData.date + 'T12:00:00-03:00'; // Mediodía en Santiago
+      
       const updateDataForSupabase = {
         category: editFormData.category,
         amount: numericAmount,
         type: editFormData.type,
-        observation: editFormData.observation.trim() || null // null para Supabase
+        observation: editFormData.observation.trim() || null, // null para Supabase
+        created_at: dateWithTimezone
       };
 
       const { error } = await supabase
@@ -284,7 +296,8 @@ export default function ExpenseList() {
                 amount: numericAmount,
                 type: editFormData.type,
                 // Convertir null a undefined para compatibilidad con el tipo Expense
-                observation: editFormData.observation.trim() || undefined
+                observation: editFormData.observation.trim() || undefined,
+                created_at: dateWithTimezone
               }
             : expense
         )
@@ -297,7 +310,8 @@ export default function ExpenseList() {
         category: '',
         amount: '',
         type: 'Individual',
-        observation: ''
+        observation: '',
+        date: ''
       });
 
     } catch (error) {
@@ -315,8 +329,69 @@ export default function ExpenseList() {
       category: '',
       amount: '',
       type: 'Individual',
-      observation: ''
+      observation: '',
+      date: ''
     });
+  };
+
+  // Función para exportar gastos a Excel
+  const exportToExcel = () => {
+    if (filteredExpenses.length === 0) {
+      alert('No hay gastos para exportar con los filtros seleccionados.');
+      return;
+    }
+
+    // Preparar datos para Excel
+    const excelData = filteredExpenses.map(expense => ({
+      'Fecha': formatDate(expense.created_at),
+      'Categoría': expense.category,
+      'Monto': expense.amount,
+      'Tipo': expense.type,
+      'Observación': expense.observation || '',
+    }));
+
+    // Agregar fila de totales
+    const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    excelData.push({
+      'Fecha': 'TOTAL',
+      'Categoría': '',
+      'Monto': totalAmount,
+      'Tipo': 'Individual' as const, // Usar un tipo válido para evitar error de TypeScript
+      'Observación': '',
+    });
+
+    // Crear workbook y worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Gastos');
+
+    // Configurar estilos para el total
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const totalRow = range.e.r;
+    
+    // Generar nombre de archivo con fecha actual y filtros
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    let filename = `gastos_${dateStr}`;
+    
+    if (selectedYearMonth) {
+      const [year, month] = selectedYearMonth.split('-');
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      filename += `_${monthNames[parseInt(month) - 1]}_${year}`;
+    }
+    
+    if (selectedCategory) {
+      filename += `_${selectedCategory.replace(/\s+/g, '_')}`;
+    }
+    
+    if (selectedType) {
+      filename += `_${selectedType}`;
+    }
+    
+    filename += '.xlsx';
+
+    // Descargar archivo
+    XLSX.writeFile(wb, filename);
   };
 
   // Efectos
@@ -431,6 +506,15 @@ export default function ExpenseList() {
                 className="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               >
                 Limpiar filtros
+              </button>
+              
+              <button
+                onClick={exportToExcel}
+                disabled={filteredExpenses.length === 0}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Descargar Excel
               </button>
               
               <div className="p-2 px-4 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -674,6 +758,19 @@ export default function ExpenseList() {
                     Compartido
                   </button>
                 </div>
+              </div>
+              
+              {/* Fecha */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha del gasto
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.date}
+                  onChange={(e) => handleEditFormChange('date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </div>
               
               {/* Observación */}
