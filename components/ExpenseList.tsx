@@ -356,18 +356,116 @@ export default function ExpenseList() {
       'Fecha': 'TOTAL',
       'Categoría': '',
       'Monto': totalAmount,
-      'Tipo': 'Individual' as const, // Usar un tipo válido para evitar error de TypeScript
+      'Tipo': 'Individual' as const,
       'Observación': '',
     });
 
     // Crear workbook y worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Gastos');
+    
+    // Configurar anchos de columnas
+    const colWidths = [
+      { wch: 12 }, // Fecha
+      { wch: 20 }, // Categoría
+      { wch: 15 }, // Monto
+      { wch: 12 }, // Tipo
+      { wch: 30 }, // Observación
+    ];
+    ws['!cols'] = colWidths;
 
-    // Configurar estilos para el total
+    // Obtener el rango de datos
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    const totalRow = range.e.r;
+    const totalRowIndex = range.e.r;
+
+    // Aplicar formato de moneda a la columna de Monto (columna C)
+    for (let row = 1; row <= totalRowIndex; row++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna C (Monto)
+      if (ws[cellAddress]) {
+        ws[cellAddress].z = '#,##0'; // Formato de número con separadores de miles
+      }
+    }
+
+    // Crear estilos para el encabezado
+    const headerStyle = {
+      fill: { fgColor: { rgb: "2563EB" } }, // Color azul más vibrante
+      font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      }
+    };
+
+    // Crear estilos para las celdas de datos
+    const dataStyle = {
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } }
+      },
+      alignment: { vertical: "center" }
+    };
+
+    // Crear estilos para la fila de total
+    const totalStyle = {
+      fill: { fgColor: { rgb: "F3F4F6" } }, // Color gris claro
+      font: { bold: true, sz: 12 },
+      border: {
+        top: { style: "medium", color: { rgb: "000000" } },
+        bottom: { style: "medium", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      },
+      alignment: { horizontal: "center", vertical: "center" }
+    };
+
+    // Aplicar estilos al encabezado (fila 0)
+    for (let col = 0; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+      ws[cellAddress].s = headerStyle;
+    }
+
+    // Aplicar estilos a las celdas de datos
+    for (let row = 1; row < totalRowIndex; row++) {
+      for (let col = 0; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+        ws[cellAddress].s = {
+          ...dataStyle,
+          alignment: { 
+            ...dataStyle.alignment,
+            horizontal: col === 2 ? "right" : col === 0 ? "center" : "left" // Monto a la derecha, fecha centro, resto izquierda
+          }
+        };
+      }
+    }
+
+    // Aplicar estilos a la fila de total
+    for (let col = 0; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: totalRowIndex, c: col });
+      if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+      ws[cellAddress].s = {
+        ...totalStyle,
+        alignment: { 
+          ...totalStyle.alignment,
+          horizontal: col === 2 ? "right" : "center" // Monto a la derecha, resto centrado
+        }
+      };
+    }
+
+    // Agregar metadatos del archivo
+    ws['A1'].v = 'Fecha';
+    ws['B1'].v = 'Categoría';
+    ws['C1'].v = 'Monto (CLP)';
+    ws['D1'].v = 'Tipo';
+    ws['E1'].v = 'Observación';
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Mis Gastos');
     
     // Generar nombre de archivo con fecha actual y filtros
     const now = new Date();
