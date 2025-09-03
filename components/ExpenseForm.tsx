@@ -178,16 +178,19 @@ export default function ExpenseForm() {
       }
 
       // Preparar datos para insertar
+      // Crear timestamp con zona horaria de Santiago
+      const dateWithTimezone = formData.date + 'T12:00:00-03:00'; // Mediodía en Santiago
+      
       const expenseData = {
         amount: parseInt(formData.amount),
         category: formData.category,
         observation: formData.observation,
         type: formData.type,
         user_email: user.email,
-        created_at: formData.date
+        created_at: dateWithTimezone
       };
       
-      console.log('Enviando fecha:', formData.date);
+      console.log('Enviando fecha:', dateWithTimezone);
       console.log('Datos completos:', expenseData);
 
       // Insertar gasto
